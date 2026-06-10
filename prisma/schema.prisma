@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Stock {
+  id         String     @id @default(cuid())
+  symbol     String     @unique
+  name       String?
+  active     Boolean    @default(true)
+  strategies Strategy[]
+  orders     Order[]
+  createdAt  DateTime   @default(now())
+}
+
+model Strategy {
+  id            String       @id @default(cuid())
+  name          String
+  stockId       String
+  stock         Stock        @relation(fields: [stockId], references: [id])
+  type          StrategyType
+  params        Json
+  action        OrderSide    @default(BUY)
+  orderType     OrderType    @default(MARKET)
+  qty           Float
+  enabled       Boolean      @default(false)
+  lastTriggered DateTime?
+  createdAt     DateTime     @default(now())
+  orders        Order[]
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  alpacaId   String?     @unique
+  strategyId String?
+  strategy   Strategy?   @relation(fields: [strategyId], references: [id])
+  stockId    String
+  stock      Stock       @relation(fields: [stockId], references: [id])
+  side       OrderSide
+  qty        Float
+  type       OrderType
+  limitPrice Float?
+  status     OrderStatus @default(PENDING)
+  filledAt   DateTime?
+  createdAt  DateTime    @default(now())
+}
+
+model Settings {
+  id                String  @id @default("singleton")
+  alpacaMode        String  @default("paper")
+  alpacaPaperKey    String?
+  alpacaPaperSecret String?
+  alpacaLiveKey     String?
+  alpacaLiveSecret  String?
+  cronExpression    String  @default("*/5 * * * *")
+  tradeOutsideHours Boolean @default(false)
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+enum StrategyType {
+  RSI
+  SMA_CROSSOVER
+  MACD
+  CUSTOM
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP
+}
+
+enum OrderStatus {
+  PENDING
+  FILLED
+  CANCELLED
+  REJECTED
+}
