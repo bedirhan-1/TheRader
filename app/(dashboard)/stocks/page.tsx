@@ -159,7 +159,15 @@ export default function StocksPage() {
                         key={stock.id}
                         className="border-border cursor-pointer hover:bg-accent/50"
                       >
-                        <TableCell>
+                        <TableCell className="flex items-center gap-3">
+                          <img
+                            src={`https://images.financialmodelingprep.com/symbol/${stock.symbol}.png`}
+                            alt={stock.symbol}
+                            className="h-6 w-6 rounded-full bg-muted object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
                           <Link
                             href={`/stocks/${stock.symbol}`}
                             className="font-mono text-sm font-medium text-foreground hover:text-info"

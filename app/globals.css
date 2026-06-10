@@ -137,9 +137,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   }
 }

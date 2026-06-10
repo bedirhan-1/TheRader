@@ -113,13 +113,21 @@ export default function StockDetailPage({
             <Skeleton className="h-8 w-40" />
           ) : (
             <div className="flex items-center gap-4">
+              <img
+                src={`https://images.financialmodelingprep.com/symbol/${symbol}.png`}
+                alt={symbol}
+                className="h-8 w-8 rounded-full bg-muted object-contain"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
               <h1 className="font-mono text-2xl font-bold">{symbol}</h1>
               <span className="text-lg text-muted-foreground">
                 {stock?.name || ""}
               </span>
               {price && (
                 <span className="font-mono text-2xl font-semibold">
-                  ${price.toFixed(2)}
+                  ${price}
                 </span>
               )}
               {change !== null && (

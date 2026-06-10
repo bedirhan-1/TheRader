@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,9 +62,21 @@ export default function SettingsPage() {
 
   // Populate forms when data loads
   const settings = settingsData?.data;
-  if (settings && alpacaForm.alpacaMode === "paper" && !alpacaForm.alpacaPaperKey) {
-    // Only set once
-  }
+  useEffect(() => {
+    if (settings) {
+      setAlpacaForm({
+        alpacaMode: settings.alpacaMode || "paper",
+        alpacaPaperKey: settings.alpacaPaperKey || "",
+        alpacaPaperSecret: settings.alpacaPaperSecret || "",
+        alpacaLiveKey: settings.alpacaLiveKey || "",
+        alpacaLiveSecret: settings.alpacaLiveSecret || "",
+      });
+      setCronForm({
+        cronExpression: settings.cronExpression || "*/5 * * * *",
+        tradeOutsideHours: settings.tradeOutsideHours ?? false,
+      });
+    }
+  }, [settings]);
 
   const saveAlpacaMutation = useMutation({
     mutationFn: async (data: typeof alpacaForm) => {
@@ -102,16 +114,33 @@ export default function SettingsPage() {
 
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
+      const isLive = alpacaForm.alpacaMode === "live";
+      const apiKey = isLive
+        ? alpacaForm.alpacaLiveKey
+        : alpacaForm.alpacaPaperKey;
+      const secretKey = isLive
+        ? alpacaForm.alpacaLiveSecret
+        : alpacaForm.alpacaPaperSecret;
+
       const res = await fetch("/api/settings/test-connection", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey,
+          secretKey,
+          isLive,
+        }),
       });
-      if (!res.ok) throw new Error("Bağlantı başarısız");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Bağlantı başarısız");
+      }
       return res.json();
     },
     onSuccess: (data) => {
-      toast.success(`Bağlantı başarılı! Hesap: ${data.data?.account_number || "OK"}`);
+      toast.success("Bağlantı başarılı!");
     },
-    onError: () => toast.error("Alpaca bağlantısı başarısız"),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   // Users
@@ -122,7 +151,12 @@ export default function SettingsPage() {
   });
 
   const [addUserOpen, setAddUserOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ email: "", name: "", password: "", role: "VIEWER" });
+  const [newUser, setNewUser] = useState({
+    email: "",
+    name: "",
+    password: "",
+    role: "VIEWER",
+  });
 
   const addUserMutation = useMutation({
     mutationFn: async (user: typeof newUser) => {
@@ -198,9 +232,13 @@ export default function SettingsPage() {
               {["paper", "live"].map((mode) => (
                 <Button
                   key={mode}
-                  variant={alpacaForm.alpacaMode === mode ? "default" : "outline"}
+                  variant={
+                    alpacaForm.alpacaMode === mode ? "default" : "outline"
+                  }
                   size="sm"
-                  onClick={() => setAlpacaForm({ ...alpacaForm, alpacaMode: mode })}
+                  onClick={() =>
+                    setAlpacaForm({ ...alpacaForm, alpacaMode: mode })
+                  }
                   className="h-7 text-xs capitalize"
                 >
                   {mode}
@@ -218,12 +256,22 @@ export default function SettingsPage() {
               </Label>
               <Input
                 type="password"
-                value={alpacaForm.alpacaMode === "paper" ? alpacaForm.alpacaPaperKey : alpacaForm.alpacaLiveKey}
+                value={
+                  alpacaForm.alpacaMode === "paper"
+                    ? alpacaForm.alpacaPaperKey
+                    : alpacaForm.alpacaLiveKey
+                }
                 onChange={(e) => {
                   if (alpacaForm.alpacaMode === "paper") {
-                    setAlpacaForm({ ...alpacaForm, alpacaPaperKey: e.target.value });
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaPaperKey: e.target.value,
+                    });
                   } else {
-                    setAlpacaForm({ ...alpacaForm, alpacaLiveKey: e.target.value });
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaLiveKey: e.target.value,
+                    });
                   }
                 }}
                 className="border-border bg-background font-mono text-xs"
@@ -236,12 +284,22 @@ export default function SettingsPage() {
               </Label>
               <Input
                 type="password"
-                value={alpacaForm.alpacaMode === "paper" ? alpacaForm.alpacaPaperSecret : alpacaForm.alpacaLiveSecret}
+                value={
+                  alpacaForm.alpacaMode === "paper"
+                    ? alpacaForm.alpacaPaperSecret
+                    : alpacaForm.alpacaLiveSecret
+                }
                 onChange={(e) => {
                   if (alpacaForm.alpacaMode === "paper") {
-                    setAlpacaForm({ ...alpacaForm, alpacaPaperSecret: e.target.value });
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaPaperSecret: e.target.value,
+                    });
                   } else {
-                    setAlpacaForm({ ...alpacaForm, alpacaLiveSecret: e.target.value });
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaLiveSecret: e.target.value,
+                    });
                   }
                 }}
                 className="border-border bg-background font-mono text-xs"
@@ -263,7 +321,9 @@ export default function SettingsPage() {
               onClick={() => testConnectionMutation.mutate()}
               disabled={testConnectionMutation.isPending}
             >
-              {testConnectionMutation.isPending ? "Test ediliyor..." : "Bağlantıyı Test Et"}
+              {testConnectionMutation.isPending
+                ? "Test ediliyor..."
+                : "Bağlantıyı Test Et"}
             </Button>
           </div>
         </CardContent>
@@ -275,7 +335,10 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Kullanıcı Yönetimi</CardTitle>
           <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
             <DialogTrigger>
-              <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90">
+              <Button
+                size="sm"
+                className="bg-foreground text-background hover:bg-foreground/90"
+              >
                 Kullanıcı Ekle
               </Button>
             </DialogTrigger>
@@ -290,17 +353,51 @@ export default function SettingsPage() {
                 }}
                 className="space-y-4"
               >
-                <Input placeholder="Ad" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} className="border-border bg-background" />
-                <Input placeholder="E-posta" type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="border-border bg-background" />
-                <Input placeholder="Şifre" type="password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="border-border bg-background" />
-                <Select value={newUser.role} onValueChange={(v) => setNewUser({...newUser, role: v ?? "VIEWER"})}>
-                  <SelectTrigger className="border-border bg-background"><SelectValue /></SelectTrigger>
+                <Input
+                  placeholder="Ad"
+                  value={newUser.name}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, name: e.target.value })
+                  }
+                  className="border-border bg-background"
+                />
+                <Input
+                  placeholder="E-posta"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, email: e.target.value })
+                  }
+                  className="border-border bg-background"
+                />
+                <Input
+                  placeholder="Şifre"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                  className="border-border bg-background"
+                />
+                <Select
+                  value={newUser.role}
+                  onValueChange={(v) =>
+                    setNewUser({ ...newUser, role: v ?? "VIEWER" })
+                  }
+                >
+                  <SelectTrigger className="border-border bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ADMIN">Admin</SelectItem>
                     <SelectItem value="VIEWER">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button type="submit" disabled={addUserMutation.isPending} className="w-full bg-foreground text-background hover:bg-foreground/90">
+                <Button
+                  type="submit"
+                  disabled={addUserMutation.isPending}
+                  className="w-full bg-foreground text-background hover:bg-foreground/90"
+                >
                   Ekle
                 </Button>
               </form>
@@ -323,19 +420,36 @@ export default function SettingsPage() {
                 ? Array.from({ length: 2 }).map((_, i) => (
                     <TableRow key={i} className="border-border">
                       {Array.from({ length: 5 }).map((_, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell key={j}>
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
                       ))}
                     </TableRow>
                   ))
                 : users.map(
-                    (user: { id: string; name: string | null; email: string; role: string; createdAt: string }) => (
+                    (user: {
+                      id: string;
+                      name: string | null;
+                      email: string;
+                      role: string;
+                      createdAt: string;
+                    }) => (
                       <TableRow key={user.id} className="border-border">
-                        <TableCell className="text-sm">{user.name || "—"}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
+                        <TableCell className="text-sm">
+                          {user.name || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {user.email}
+                        </TableCell>
                         <TableCell>
                           <Select
                             value={user.role}
-                            onValueChange={(v) => changeRoleMutation.mutate({ id: user.id, role: v ?? "VIEWER" })}
+                            onValueChange={(v) =>
+                              changeRoleMutation.mutate({
+                                id: user.id,
+                                role: v ?? "VIEWER",
+                              })
+                            }
                           >
                             <SelectTrigger className="h-7 w-[100px] border-border bg-background text-xs">
                               <SelectValue />
@@ -350,7 +464,8 @@ export default function SettingsPage() {
                           {new Date(user.createdAt).toLocaleDateString("tr-TR")}
                         </TableCell>
                         <TableCell>
-                          {user.id !== (session?.user as { id?: string })?.id && (
+                          {user.id !==
+                            (session?.user as { id?: string })?.id && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -362,7 +477,7 @@ export default function SettingsPage() {
                           )}
                         </TableCell>
                       </TableRow>
-                    )
+                    ),
                   )}
             </TableBody>
           </Table>
@@ -376,10 +491,14 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Strateji Kontrol Sıklığı</Label>
+            <Label className="text-xs text-muted-foreground">
+              Strateji Kontrol Sıklığı
+            </Label>
             <Select
               value={cronForm.cronExpression}
-              onValueChange={(v) => setCronForm({ ...cronForm, cronExpression: v ?? "*/5 * * * *" })}
+              onValueChange={(v) =>
+                setCronForm({ ...cronForm, cronExpression: v ?? "*/5 * * * *" })
+              }
             >
               <SelectTrigger className="w-[200px] border-border bg-background">
                 <SelectValue />
@@ -399,7 +518,9 @@ export default function SettingsPage() {
             </Label>
             <Switch
               checked={cronForm.tradeOutsideHours}
-              onCheckedChange={(v) => setCronForm({ ...cronForm, tradeOutsideHours: v })}
+              onCheckedChange={(v) =>
+                setCronForm({ ...cronForm, tradeOutsideHours: v })
+              }
             />
           </div>
           <Button

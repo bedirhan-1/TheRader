@@ -155,7 +155,11 @@ export default function StrategiesPage() {
                   onValueChange={(v) => setFormData({ ...formData, stockId: v ?? "" })}
                 >
                   <SelectTrigger className="border-border bg-background">
-                    <SelectValue placeholder="Hisse seçin" />
+                    <SelectValue placeholder="Hisse seçin">
+                      {formData.stockId 
+                        ? stocks.find((s: any) => s.id === formData.stockId)?.symbol 
+                        : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {stocks.map((s: { id: string; symbol: string }) => (
