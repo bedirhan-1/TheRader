@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { alpaca } from "@/lib/alpaca";
+import { getAlpacaClient } from "@/lib/alpaca";
 import { RsiStrategy } from "@/lib/strategies/rsi";
 import { SmaCrossoverStrategy } from "@/lib/strategies/sma-crossover";
 import { MacdStrategy } from "@/lib/strategies/macd";
+import { BollingerStrategy } from "@/lib/strategies/bollinger";
 import { CustomStrategy } from "@/lib/strategies/custom";
 import { Bar, StrategyEngine } from "@/lib/strategies";
 
@@ -10,6 +11,7 @@ const ENGINES: Record<string, StrategyEngine> = {
   RSI: new RsiStrategy(),
   SMA_CROSSOVER: new SmaCrossoverStrategy(),
   MACD: new MacdStrategy(),
+  BOLLINGER: new BollingerStrategy(),
   CUSTOM: new CustomStrategy(),
 };
 
@@ -63,13 +65,13 @@ export async function runStrategies() {
     // Retrieve active strategies
     const activeStrategies = await prisma.strategy.findMany({
       where: { enabled: true },
-      include: { stock: true },
+      include: { stock: true, user: true },
     });
 
     console.log(`[Strategy Runner] Found ${activeStrategies.length} active strategies.`);
 
     for (const strategy of activeStrategies) {
-      const { id, name, type, params, action, qty, stock } = strategy;
+      const { id, name, type, params, action, qty, stock, userId } = strategy;
       console.log(`[Strategy Runner] Processing strategy: ${name} (${type}) on ${stock.symbol}`);
 
       const engine = ENGINES[type];
@@ -79,6 +81,8 @@ export async function runStrategies() {
       }
 
       try {
+        const alpaca = getAlpacaClient(userId);
+
         // Fetch bars from Alpaca
         // We'll fetch 100 days of daily data to ensure technical indicator calculation works (needs buffer)
         const end = new Date();
@@ -138,6 +142,7 @@ export async function runStrategies() {
           await prisma.order.create({
             data: {
               alpacaId: alpacaOrder.id,
+              userId: userId,
               stockId: stock.id,
               strategyId: id,
               side: signal,

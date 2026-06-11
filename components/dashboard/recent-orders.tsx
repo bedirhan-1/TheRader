@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useRouter } from "next/navigation";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-warning/10 text-warning border-warning/20",
@@ -26,6 +27,7 @@ const sideColors: Record<string, string> = {
 };
 
 export function RecentOrders() {
+  const router = useRouter();
   const { data, isLoading } = useQuery({
     queryKey: ["recentOrders"],
     queryFn: () =>
@@ -74,7 +76,11 @@ export function RecentOrders() {
                   status: string;
                   createdAt: string;
                 }) => (
-                  <TableRow key={order.id} className="border-border">
+                  <TableRow
+                    key={order.id}
+                    className="border-border hover:bg-accent/30 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/stocks/${order.stock?.symbol}`)}
+                  >
                     <TableCell className="font-mono text-xs font-medium">
                       {order.stock?.symbol}
                     </TableCell>

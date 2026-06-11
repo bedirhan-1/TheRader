@@ -2,18 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alpaca } from "@/lib/alpaca";
+import { getAlpacaClient } from "@/lib/alpaca";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const stocks = await prisma.stock.findMany({
       where: { active: true },
-      include: { _count: { select: { strategies: true } } },
+      include: {
+        strategies: {
+          where: { userId: session.user.id },
+        },
+      },
       orderBy: { symbol: "asc" },
     });
 
@@ -22,6 +26,7 @@ export async function GET() {
     let snapshots: Record<string, unknown> = {};
     if (symbols.length > 0) {
       try {
+        const alpaca = getAlpacaClient(session.user.id);
         snapshots = await alpaca.getSnapshots(symbols);
       } catch {
         // Alpaca may not be configured yet
@@ -29,7 +34,14 @@ export async function GET() {
     }
 
     const data = stocks.map((stock: any) => ({
-      ...stock,
+      id: stock.id,
+      symbol: stock.symbol,
+      name: stock.name,
+      active: stock.active,
+      createdAt: stock.createdAt,
+      _count: {
+        strategies: stock.strategies.length,
+      },
       snapshot: snapshots[stock.symbol] || null,
     }));
 
@@ -42,9 +54,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const user = session.user as { id: string; role?: string };
 
   try {
     const { symbol } = await request.json();
@@ -64,6 +78,7 @@ export async function POST(request: NextRequest) {
     // Validate on Alpaca
     let asset;
     try {
+      const alpaca = getAlpacaClient(user.id);
       asset = await alpaca.getAsset(upperSymbol);
     } catch {
       return NextResponse.json(

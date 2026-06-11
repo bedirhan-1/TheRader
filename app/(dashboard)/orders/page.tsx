@@ -110,96 +110,104 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        {isAdmin && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger
-              render={
-                <Button className="bg-foreground text-background hover:bg-foreground/90">
-                  Manuel Emir
-                </Button>
-              }
-            />
-            <DialogContent className="border-border bg-card">
-              <DialogHeader>
-                <DialogTitle>Manuel Emir Gönder</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  placeMutation.mutate(orderForm);
-                }}
-                className="space-y-4"
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger
+            render={
+              <Button className="bg-foreground text-background hover:bg-foreground/90">
+                Manuel Emir
+              </Button>
+            }
+          />
+          <DialogContent className="border-border bg-card">
+            <DialogHeader>
+              <DialogTitle>Manuel Emir Gönder</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                placeMutation.mutate(orderForm);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Sembol</Label>
+                <Input
+                  value={orderForm.symbol}
+                  onChange={(e) =>
+                    setOrderForm({ ...orderForm, symbol: e.target.value })
+                  }
+                  className="border-border bg-background font-mono uppercase"
+                  placeholder="AAPL"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Yön</Label>
+                  <Select
+                    value={orderForm.side}
+                    onValueChange={(v) =>
+                      setOrderForm({ ...orderForm, side: v ?? "BUY" })
+                    }
+                  >
+                    <SelectTrigger className="border-border bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BUY">BUY</SelectItem>
+                      <SelectItem value="SELL">SELL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Tür</Label>
+                  <Select
+                    value={orderForm.type}
+                    onValueChange={(v) =>
+                      setOrderForm({ ...orderForm, type: v ?? "MARKET" })
+                    }
+                  >
+                    <SelectTrigger className="border-border bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MARKET">Market</SelectItem>
+                      <SelectItem value="LIMIT">Limit</SelectItem>
+                      <SelectItem value="STOP">Stop</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Adet</Label>
+                <Input
+                  type="number"
+                  value={orderForm.qty}
+                  onChange={(e) =>
+                    setOrderForm({ ...orderForm, qty: e.target.value })
+                  }
+                  className="border-border bg-background"
+                  placeholder="10"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={placeMutation.isPending}
+                className="w-full bg-foreground text-background hover:bg-foreground/90"
               >
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Sembol</Label>
-                  <Input
-                    value={orderForm.symbol}
-                    onChange={(e) => setOrderForm({ ...orderForm, symbol: e.target.value })}
-                    className="border-border bg-background font-mono uppercase"
-                    placeholder="AAPL"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Yön</Label>
-                    <Select
-                      value={orderForm.side}
-                      onValueChange={(v) => setOrderForm({ ...orderForm, side: v ?? "BUY" })}
-                    >
-                      <SelectTrigger className="border-border bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="BUY">BUY</SelectItem>
-                        <SelectItem value="SELL">SELL</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Tür</Label>
-                    <Select
-                      value={orderForm.type}
-                      onValueChange={(v) => setOrderForm({ ...orderForm, type: v ?? "MARKET" })}
-                    >
-                      <SelectTrigger className="border-border bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MARKET">Market</SelectItem>
-                        <SelectItem value="LIMIT">Limit</SelectItem>
-                        <SelectItem value="STOP">Stop</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Adet</Label>
-                  <Input
-                    type="number"
-                    value={orderForm.qty}
-                    onChange={(e) => setOrderForm({ ...orderForm, qty: e.target.value })}
-                    className="border-border bg-background"
-                    placeholder="10"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={placeMutation.isPending}
-                  className="w-full bg-foreground text-background hover:bg-foreground/90"
-                >
-                  {placeMutation.isPending ? "Gönderiliyor..." : "Emir Gönder"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+                {placeMutation.isPending ? "Gönderiliyor..." : "Emir Gönder"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
       <div className="flex gap-3">
         <Select
           value={filters.status}
-          onValueChange={(v) => setFilters({ ...filters, status: !v || v === "all" ? "" : v })}
+          onValueChange={(v) =>
+            setFilters({ ...filters, status: !v || v === "all" ? "" : v })
+          }
         >
           <SelectTrigger className="w-[140px] border-border bg-card text-xs">
             <SelectValue placeholder="Durum" />
@@ -214,7 +222,9 @@ export default function OrdersPage() {
         </Select>
         <Select
           value={filters.side}
-          onValueChange={(v) => setFilters({ ...filters, side: !v || v === "all" ? "" : v })}
+          onValueChange={(v) =>
+            setFilters({ ...filters, side: !v || v === "all" ? "" : v })
+          }
         >
           <SelectTrigger className="w-[120px] border-border bg-card text-xs">
             <SelectValue placeholder="Yön" />
@@ -252,7 +262,9 @@ export default function OrdersPage() {
               ? Array.from({ length: 10 }).map((_, i) => (
                   <TableRow key={i} className="border-border">
                     {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))
@@ -272,27 +284,37 @@ export default function OrdersPage() {
                         {order.stock?.symbol}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={sideColors[order.side]}>
+                        <Badge
+                          variant="outline"
+                          className={sideColors[order.side]}
+                        >
                           {order.side}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{order.qty}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {order.qty}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {order.type}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={statusColors[order.status]}>
+                        <Badge
+                          variant="outline"
+                          className={statusColors[order.status]}
+                        >
                           {order.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {order.limitPrice ? `$${order.limitPrice.toFixed(2)}` : "—"}
+                        {order.limitPrice
+                          ? `$${order.limitPrice.toFixed(2)}`
+                          : "—"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(order.createdAt).toLocaleString("tr-TR")}
                       </TableCell>
                     </TableRow>
-                  )
+                  ),
                 )}
           </TableBody>
         </Table>

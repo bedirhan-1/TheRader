@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alpaca } from "@/lib/alpaca";
+import { getAlpacaClient } from "@/lib/alpaca";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -19,8 +19,12 @@ export async function GET(
     const stock = await prisma.stock.findUnique({
       where: { symbol: symbol.toUpperCase() },
       include: {
-        strategies: { orderBy: { createdAt: "desc" } },
+        strategies: {
+          where: { userId: session.user.id },
+          orderBy: { createdAt: "desc" },
+        },
         orders: {
+          where: { userId: session.user.id },
           orderBy: { createdAt: "desc" },
           take: 20,
         },
@@ -34,6 +38,7 @@ export async function GET(
     // Get snapshot
     let snapshot = null;
     try {
+      const alpaca = getAlpacaClient(session.user.id);
       const snapshots = await alpaca.getSnapshots([stock.symbol]);
       snapshot = snapshots[stock.symbol] || null;
     } catch {
@@ -52,13 +57,8 @@ export async function DELETE(
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { symbol } = await params;

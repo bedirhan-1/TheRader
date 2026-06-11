@@ -1,27 +1,10 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -31,48 +14,94 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Bot } from "lucide-react";
+
+function formatCondition(c: any): string {
+  if (!c) return "";
+  const leftSide =
+    c.indicator === "PRICE" ? "Fiyat" : `${c.indicator}(${c.period ?? 14})`;
+
+  let opStr = "";
+  switch (c.operator) {
+    case "less_than":
+      opStr = "<";
+      break;
+    case "greater_than":
+      opStr = ">";
+      break;
+    case "equals":
+      opStr = "=";
+      break;
+    case "crosses_above":
+      opStr = "▲";
+      break;
+    case "crosses_below":
+      opStr = "▼";
+      break;
+    default:
+      opStr = c.operator ?? "";
+  }
+
+  const rightSide =
+    c.valueType === "indicator"
+      ? c.value === "PRICE"
+        ? "Fiyat"
+        : `${c.value}(${c.valuePeriod ?? 14})`
+      : (c.value ?? "");
+
+  return `${leftSide} ${opStr} ${rightSide}`;
+}
+
+function formatCustomStrategy(params: any): string {
+  if (!params) return "Parametre yok";
+  const buyConds = params.buyConditions || [];
+  const sellConds = params.sellConditions || [];
+  const buyOp = params.buyOperator || "AND";
+  const sellOp = params.sellOperator || "AND";
+
+  const buyOpStr = buyOp === "AND" ? " VE " : " VEYA ";
+  const sellOpStr = sellOp === "AND" ? " VE " : " VEYA ";
+
+  const buyStr =
+    buyConds.length > 0
+      ? `Alım: (${buyConds.map(formatCondition).join(buyOpStr)})`
+      : "";
+  const sellStr =
+    sellConds.length > 0
+      ? `Satım: (${sellConds.map(formatCondition).join(sellOpStr)})`
+      : "";
+
+  if (buyStr && sellStr) return `${buyStr} | ${sellStr}`;
+  return buyStr || sellStr || "Koşul yok";
+}
+
+function renderParamsSummary(type: string, params: any) {
+  if (!params) return "Parametre yok";
+  if (type === "RSI") {
+    return `RSI (${params.period ?? 14}) • Al: ${params.oversold ?? 30} / Sat: ${params.overbought ?? 70}`;
+  }
+  if (type === "SMA_CROSSOVER") {
+    return `SMA Kesişimi (${params.fastPeriod ?? 10} / ${params.slowPeriod ?? 50})`;
+  }
+  if (type === "MACD") {
+    return `MACD (${params.fast ?? 12}, ${params.slow ?? 26}, ${params.signal ?? 9})`;
+  }
+  if (type === "BOLLINGER") {
+    return `Bollinger (${params.period ?? 20}, ${params.stdDevMultiplier ?? 2})`;
+  }
+  if (type === "CUSTOM") {
+    return formatCustomStrategy(params);
+  }
+  return JSON.stringify(params);
+}
 
 export default function StrategiesPage() {
   const queryClient = useQueryClient();
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    stockId: "",
-    type: "RSI" as string,
-    action: "BUY" as string,
-    orderType: "MARKET" as string,
-    qty: "",
-    enabled: false,
-    params: {} as Record<string, unknown>,
-  });
 
   const { data: strategiesData, isLoading } = useQuery({
     queryKey: ["strategies"],
     queryFn: () => fetch("/api/strategies").then((r) => r.json()),
-  });
-
-  const { data: stocksData } = useQuery({
-    queryKey: ["stocks"],
-    queryFn: () => fetch("/api/stocks").then((r) => r.json()),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const res = await fetch("/api/strategies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["strategies"] });
-      toast.success("Strateji oluşturuldu");
-      setSheetOpen(false);
-      resetForm();
-    },
-    onError: () => toast.error("Strateji oluşturulamadı"),
   });
 
   const deleteMutation = useMutation({
@@ -103,232 +132,37 @@ export default function StrategiesPage() {
     },
   });
 
-  function resetForm() {
-    setFormData({
-      name: "",
-      stockId: "",
-      type: "RSI",
-      action: "BUY",
-      orderType: "MARKET",
-      qty: "",
-      enabled: false,
-      params: {},
-    });
-  }
-
-  function getDefaultParams(type: string) {
-    switch (type) {
-      case "RSI": return { period: 14, oversold: 30, overbought: 70 };
-      case "SMA_CROSSOVER": return { fastPeriod: 10, slowPeriod: 50 };
-      case "MACD": return { fast: 12, slow: 26, signal: 9 };
-      case "CUSTOM": return { logic: "" };
-      default: return {};
-    }
-  }
-
   const strategies = strategiesData?.data ?? [];
-  const stocks = stocksData?.data ?? [];
+
+  if (!isLoading && strategies.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-border/80 rounded-2xl bg-zinc-950/20 max-w-md mx-auto my-16 space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="h-12 w-12 rounded-full bg-zinc-900 border border-border flex items-center justify-center text-muted-foreground shadow-sm">
+          <Bot className="h-6 w-6 text-foreground" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-sm font-bold text-zinc-100">Henüz Bir Stratejiniz Yok</h2>
+          <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+            Hisse senetleriniz için 7/24 çalışan otomatik alım-satım kuralları belirleyin. RSI, Bollinger Bantları veya kendi özel koşullarınızı bağlayarak ilk stratejinizi şimdi oluşturun.
+          </p>
+        </div>
+        <Link href="/strategies/new">
+          <Button className="bg-foreground text-background hover:bg-foreground/90 font-semibold text-xs px-5 h-9">
+            İlk Stratejini Oluştur →
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger
-            render={
-              <Button className="bg-foreground text-background hover:bg-foreground/90">
-                Yeni Strateji
-              </Button>
-            }
-          />
-          <SheetContent className="w-[400px] border-border bg-card overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Yeni Strateji</SheetTitle>
-            </SheetHeader>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                createMutation.mutate(formData);
-              }}
-              className="mt-6 space-y-5"
-            >
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Hisse</Label>
-                <Select
-                  value={formData.stockId}
-                  onValueChange={(v) => setFormData({ ...formData, stockId: v ?? "" })}
-                >
-                  <SelectTrigger className="border-border bg-background">
-                    <SelectValue placeholder="Hisse seçin">
-                      {formData.stockId 
-                        ? stocks.find((s: any) => s.id === formData.stockId)?.symbol 
-                        : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stocks.map((s: { id: string; symbol: string }) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.symbol}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Strateji Adı</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="border-border bg-background"
-                  placeholder="RSI Oversold AAPL"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Strateji Türü</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(v) =>
-                    setFormData({ ...formData, type: v ?? "RSI", params: getDefaultParams(v ?? "RSI") })
-                  }
-                >
-                  <SelectTrigger className="border-border bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="RSI">RSI</SelectItem>
-                    <SelectItem value="SMA_CROSSOVER">SMA Crossover</SelectItem>
-                    <SelectItem value="MACD">MACD</SelectItem>
-                    <SelectItem value="CUSTOM">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">İşlem Yönü</Label>
-                <Select
-                  value={formData.action}
-                  onValueChange={(v) => setFormData({ ...formData, action: v ?? "BUY" })}
-                >
-                  <SelectTrigger className="border-border bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BUY">Al (BUY)</SelectItem>
-                    <SelectItem value="SELL">Sat (SELL)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Dynamic params */}
-              <div className="space-y-3 rounded-md border border-border p-3">
-                <p className="text-xs font-medium text-muted-foreground">Parametreler</p>
-                {formData.type === "RSI" && (
-                  <>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Period</Label>
-                        <Input type="number" value={(formData.params as Record<string, number>).period ?? 14} onChange={(e) => setFormData({...formData, params: {...formData.params, period: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Oversold</Label>
-                        <Input type="number" value={(formData.params as Record<string, number>).oversold ?? 30} onChange={(e) => setFormData({...formData, params: {...formData.params, oversold: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Overbought</Label>
-                        <Input type="number" value={(formData.params as Record<string, number>).overbought ?? 70} onChange={(e) => setFormData({...formData, params: {...formData.params, overbought: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                      </div>
-                    </div>
-                  </>
-                )}
-                {formData.type === "SMA_CROSSOVER" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Fast Period</Label>
-                      <Input type="number" value={(formData.params as Record<string, number>).fastPeriod ?? 10} onChange={(e) => setFormData({...formData, params: {...formData.params, fastPeriod: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Slow Period</Label>
-                      <Input type="number" value={(formData.params as Record<string, number>).slowPeriod ?? 50} onChange={(e) => setFormData({...formData, params: {...formData.params, slowPeriod: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                    </div>
-                  </div>
-                )}
-                {formData.type === "MACD" && (
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Fast</Label>
-                      <Input type="number" value={(formData.params as Record<string, number>).fast ?? 12} onChange={(e) => setFormData({...formData, params: {...formData.params, fast: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Slow</Label>
-                      <Input type="number" value={(formData.params as Record<string, number>).slow ?? 26} onChange={(e) => setFormData({...formData, params: {...formData.params, slow: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Signal</Label>
-                      <Input type="number" value={(formData.params as Record<string, number>).signal ?? 9} onChange={(e) => setFormData({...formData, params: {...formData.params, signal: +e.target.value}})} className="h-8 border-border bg-background text-xs" />
-                    </div>
-                  </div>
-                )}
-                {formData.type === "CUSTOM" && (
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">Logic (JSON)</Label>
-                    <textarea
-                      value={typeof (formData.params as Record<string, string>).logic === "string" ? (formData.params as Record<string, string>).logic : ""}
-                      onChange={(e) => setFormData({...formData, params: {...formData.params, logic: e.target.value}})}
-                      className="mt-1 w-full rounded-md border border-border bg-background p-2 font-mono text-xs text-foreground"
-                      rows={4}
-                      placeholder='{"indicator":"price_change","condition":"greater_than","threshold":0.02,"action":"BUY"}'
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Emir Türü</Label>
-                <Select
-                  value={formData.orderType}
-                  onValueChange={(v) => setFormData({ ...formData, orderType: v ?? "MARKET" })}
-                >
-                  <SelectTrigger className="border-border bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MARKET">Market</SelectItem>
-                    <SelectItem value="LIMIT">Limit</SelectItem>
-                    <SelectItem value="STOP">Stop</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Miktar (Adet)</Label>
-                <Input
-                  type="number"
-                  value={formData.qty}
-                  onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
-                  className="border-border bg-background"
-                  placeholder="10"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">Aktif</Label>
-                <Switch
-                  checked={formData.enabled}
-                  onCheckedChange={(v) => setFormData({ ...formData, enabled: v })}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="w-full bg-foreground text-background hover:bg-foreground/90"
-              >
-                {createMutation.isPending ? "Oluşturuluyor..." : "Strateji Oluştur"}
-              </Button>
-            </form>
-          </SheetContent>
-        </Sheet>
+        <Link href="/strategies/new">
+          <Button className="bg-foreground text-background hover:bg-foreground/90 font-medium">
+            Yeni Strateji
+          </Button>
+        </Link>
       </div>
 
       {/* Table */}
@@ -350,7 +184,9 @@ export default function StrategiesPage() {
               ? Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i} className="border-border">
                     {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))
@@ -365,19 +201,29 @@ export default function StrategiesPage() {
                     lastTriggered: string | null;
                   }) => (
                     <TableRow key={s.id} className="border-border">
-                      <TableCell className="text-sm font-medium">{s.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{s.stock?.symbol}</TableCell>
+                      <TableCell className="text-sm font-medium">
+                        {s.name}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {s.stock?.symbol}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {s.type.replace("_", " ")}
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground max-w-[200px] truncate">
-                        {JSON.stringify(s.params)}
+                      <TableCell
+                        className="text-xs text-muted-foreground max-w-[250px] truncate"
+                        title={renderParamsSummary(s.type, s.params)}
+                      >
+                        {renderParamsSummary(s.type, s.params)}
                       </TableCell>
                       <TableCell>
                         <Switch
                           checked={s.enabled}
                           onCheckedChange={(checked) =>
-                            toggleMutation.mutate({ id: s.id, enabled: checked })
+                            toggleMutation.mutate({
+                              id: s.id,
+                              enabled: checked,
+                            })
                           }
                         />
                       </TableCell>
@@ -397,7 +243,7 @@ export default function StrategiesPage() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  )
+                  ),
                 )}
           </TableBody>
         </Table>

@@ -9,13 +9,23 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  role         Role     @default(VIEWER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  name              String?
+  role              Role     @default(VIEWER)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // User-specific Alpaca Settings
+  alpacaMode        String   @default("paper")
+  alpacaPaperKey    String?
+  alpacaPaperSecret String?
+  alpacaLiveKey     String?
+  alpacaLiveSecret  String?
+
+  strategies        Strategy[]
+  orders            Order[]
 }
 
 model Stock {
@@ -42,6 +52,9 @@ model Strategy {
   lastTriggered DateTime?
   createdAt     DateTime     @default(now())
   orders        Order[]
+
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Order {
@@ -58,15 +71,13 @@ model Order {
   status     OrderStatus @default(PENDING)
   filledAt   DateTime?
   createdAt  DateTime    @default(now())
+
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Settings {
   id                String  @id @default("singleton")
-  alpacaMode        String  @default("paper")
-  alpacaPaperKey    String?
-  alpacaPaperSecret String?
-  alpacaLiveKey     String?
-  alpacaLiveSecret  String?
   cronExpression    String  @default("*/5 * * * *")
   tradeOutsideHours Boolean @default(false)
 }
@@ -80,6 +91,7 @@ enum StrategyType {
   RSI
   SMA_CROSSOVER
   MACD
+  BOLLINGER
   CUSTOM
 }
 

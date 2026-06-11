@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: () => fetch("/api/settings").then((r) => r.json()),
-    enabled: isAdmin,
+    enabled: !!session,
   });
 
   const [alpacaForm, setAlpacaForm] = useState({
@@ -396,118 +396,118 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Alpaca API (Accessible to all users) */}
+      <Card className="border-border bg-card animate-in fade-in duration-200">
+        <CardHeader>
+          <CardTitle className="text-base">Alpaca API</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Label className="text-sm text-muted-foreground">Mod</Label>
+            <div className="flex gap-2">
+              {["paper", "live"].map((mode) => (
+                <Button
+                  key={mode}
+                  variant={
+                    alpacaForm.alpacaMode === mode ? "default" : "outline"
+                  }
+                  size="sm"
+                  onClick={() =>
+                    setAlpacaForm({ ...alpacaForm, alpacaMode: mode })
+                  }
+                  className="h-7 text-xs capitalize"
+                >
+                  {mode}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} API Key
+              </Label>
+              <Input
+                type="password"
+                value={
+                  alpacaForm.alpacaMode === "paper"
+                    ? alpacaForm.alpacaPaperKey
+                    : alpacaForm.alpacaLiveKey
+                }
+                onChange={(e) => {
+                  if (alpacaForm.alpacaMode === "paper") {
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaPaperKey: e.target.value,
+                    });
+                  } else {
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaLiveKey: e.target.value,
+                    });
+                  }
+                }}
+                className="border-border bg-background font-mono text-xs"
+                placeholder="PK..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} Secret
+              </Label>
+              <Input
+                type="password"
+                value={
+                  alpacaForm.alpacaMode === "paper"
+                    ? alpacaForm.alpacaPaperSecret
+                    : alpacaForm.alpacaLiveSecret
+                }
+                onChange={(e) => {
+                  if (alpacaForm.alpacaMode === "paper") {
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaPaperSecret: e.target.value,
+                    });
+                  } else {
+                    setAlpacaForm({
+                      ...alpacaForm,
+                      alpacaLiveSecret: e.target.value,
+                    });
+                  }
+                }}
+                className="border-border bg-background font-mono text-xs"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={() => saveAlpacaMutation.mutate(alpacaForm)}
+              disabled={saveAlpacaMutation.isPending}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              Kaydet
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => testConnectionMutation.mutate()}
+              disabled={testConnectionMutation.isPending}
+            >
+              {testConnectionMutation.isPending
+                ? "Test ediliyor..."
+                : "Bağlantıyı Test Et"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Admin Settings Sections */}
       {isAdmin && (
         <>
-          {/* Alpaca API */}
-          <Card className="border-border bg-card animate-in fade-in duration-200">
-            <CardHeader>
-              <CardTitle className="text-base">Alpaca API</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Label className="text-sm text-muted-foreground">Mod</Label>
-                <div className="flex gap-2">
-                  {["paper", "live"].map((mode) => (
-                    <Button
-                      key={mode}
-                      variant={
-                        alpacaForm.alpacaMode === mode ? "default" : "outline"
-                      }
-                      size="sm"
-                      onClick={() =>
-                        setAlpacaForm({ ...alpacaForm, alpacaMode: mode })
-                      }
-                      className="h-7 text-xs capitalize"
-                    >
-                      {mode}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} API Key
-                  </Label>
-                  <Input
-                    type="password"
-                    value={
-                      alpacaForm.alpacaMode === "paper"
-                        ? alpacaForm.alpacaPaperKey
-                        : alpacaForm.alpacaLiveKey
-                    }
-                    onChange={(e) => {
-                      if (alpacaForm.alpacaMode === "paper") {
-                        setAlpacaForm({
-                          ...alpacaForm,
-                          alpacaPaperKey: e.target.value,
-                        });
-                      } else {
-                        setAlpacaForm({
-                          ...alpacaForm,
-                          alpacaLiveKey: e.target.value,
-                        });
-                      }
-                    }}
-                    className="border-border bg-background font-mono text-xs"
-                    placeholder="PK..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} Secret
-                  </Label>
-                  <Input
-                    type="password"
-                    value={
-                      alpacaForm.alpacaMode === "paper"
-                        ? alpacaForm.alpacaPaperSecret
-                        : alpacaForm.alpacaLiveSecret
-                    }
-                    onChange={(e) => {
-                      if (alpacaForm.alpacaMode === "paper") {
-                        setAlpacaForm({
-                          ...alpacaForm,
-                          alpacaPaperSecret: e.target.value,
-                        });
-                      } else {
-                        setAlpacaForm({
-                          ...alpacaForm,
-                          alpacaLiveSecret: e.target.value,
-                        });
-                      }
-                    }}
-                    className="border-border bg-background font-mono text-xs"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => saveAlpacaMutation.mutate(alpacaForm)}
-                  disabled={saveAlpacaMutation.isPending}
-                  className="bg-foreground text-background hover:bg-foreground/90"
-                >
-                  Kaydet
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => testConnectionMutation.mutate()}
-                  disabled={testConnectionMutation.isPending}
-                >
-                  {testConnectionMutation.isPending
-                    ? "Test ediliyor..."
-                    : "Bağlantıyı Test Et"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* User Management */}
           <Card className="border-border bg-card animate-in fade-in duration-200">
             <CardHeader className="flex flex-row items-center justify-between">

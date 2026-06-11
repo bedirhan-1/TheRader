@@ -13,7 +13,11 @@ import {
   CartesianGrid,
 } from "recharts";
 
-export function PortfolioChart() {
+interface PortfolioChartProps {
+  currentEquity?: number | null;
+}
+
+export function PortfolioChart({ currentEquity }: PortfolioChartProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["portfolioHistory"],
     queryFn: () => fetch("/api/account?type=history").then((r) => r.json()),
@@ -21,14 +25,41 @@ export function PortfolioChart() {
   });
 
   const history = data?.data;
+  const firstNonZeroEquity =
+    history?.equity?.find((val: number) => val > 0) ?? 0;
   const chartData =
-    history?.timestamp?.map((ts: number, i: number) => ({
-      date: new Date(ts * 1000).toLocaleDateString("tr-TR", {
-        day: "2-digit",
-        month: "short",
-      }),
-      equity: history.equity[i],
-    })) ?? [];
+    history?.timestamp?.map((ts: number, i: number) => {
+      const eq = history.equity[i];
+      return {
+        date: new Date(ts * 1000).toLocaleDateString("tr-TR", {
+          day: "2-digit",
+          month: "short",
+        }),
+        equity:
+          eq === 0 || eq === null || eq === undefined ? firstNonZeroEquity : eq,
+      };
+    }) ?? [];
+
+  // Real-time backfill/append today's active portfolio value
+  if (
+    chartData.length > 0 &&
+    currentEquity !== undefined &&
+    currentEquity !== null
+  ) {
+    const todayStr = new Date().toLocaleDateString("tr-TR", {
+      day: "2-digit",
+      month: "short",
+    });
+    const lastItem = chartData[chartData.length - 1];
+    if (lastItem.date === todayStr) {
+      lastItem.equity = currentEquity;
+    } else {
+      chartData.push({
+        date: todayStr,
+        equity: currentEquity,
+      });
+    }
+  }
 
   return (
     <Card className="border-border bg-card">
@@ -64,10 +95,13 @@ export function PortfolioChart() {
                 tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
-                width={55}
+                tickFormatter={(v: number) =>
+                  `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+                }
+                width={65}
+                domain={[0, "auto"]}
               />
-               <Tooltip
+              <Tooltip
                 contentStyle={{
                   backgroundColor: "var(--card)",
                   border: "1px solid var(--border)",

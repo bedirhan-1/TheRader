@@ -6,38 +6,42 @@ import { encrypt, decrypt } from "@/lib/crypto";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const currentUser = session.user as { id: string; role?: string };
 
   try {
-    let settings = await prisma.settings.findFirst();
-    if (!settings) {
-      settings = await prisma.settings.create({
-        data: {
-          alpacaMode: "paper",
-          alpacaPaperKey: "",
-          alpacaPaperSecret: "",
-          alpacaLiveKey: "",
-          alpacaLiveSecret: "",
-          cronExpression: "*/5 * * * *",
-          tradeOutsideHours: false,
-        },
-      });
+    const user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Mask secret keys and decrypt API keys for viewing
+    let globalSettings = null;
+    if (currentUser.role === "ADMIN") {
+      globalSettings = await prisma.settings.findFirst();
+      if (!globalSettings) {
+        globalSettings = await prisma.settings.create({
+          data: {
+            cronExpression: "*/5 * * * *",
+            tradeOutsideHours: false,
+          },
+        });
+      }
+    }
+
     const decryptedSettings = {
-      ...settings,
-      alpacaPaperKey: settings.alpacaPaperKey ? decrypt(settings.alpacaPaperKey) : "",
-      alpacaPaperSecret: settings.alpacaPaperSecret ? "••••••••••••••••••••" : "",
-      alpacaLiveKey: settings.alpacaLiveKey ? decrypt(settings.alpacaLiveKey) : "",
-      alpacaLiveSecret: settings.alpacaLiveSecret ? "••••••••••••••••••••" : "",
+      alpacaMode: user.alpacaMode,
+      alpacaPaperKey: user.alpacaPaperKey ? decrypt(user.alpacaPaperKey) : "",
+      alpacaPaperSecret: user.alpacaPaperSecret ? "••••••••••••••••••••" : "",
+      alpacaLiveKey: user.alpacaLiveKey ? decrypt(user.alpacaLiveKey) : "",
+      alpacaLiveSecret: user.alpacaLiveSecret ? "••••••••••••••••••••" : "",
+      cronExpression: globalSettings?.cronExpression ?? "*/5 * * * *",
+      tradeOutsideHours: globalSettings?.tradeOutsideHours ?? false,
     };
 
     return NextResponse.json({ data: decryptedSettings });
@@ -49,14 +53,11 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const currentUser = session.user as { id: string; role?: string };
 
   try {
     const body = await request.json();
@@ -70,51 +71,64 @@ export async function PATCH(request: NextRequest) {
       tradeOutsideHours,
     } = body;
 
-    let settings = await prisma.settings.findFirst();
-    if (!settings) {
-      settings = await prisma.settings.create({
-        data: {
-          alpacaMode: "paper",
-          alpacaPaperKey: "",
-          alpacaPaperSecret: "",
-          alpacaLiveKey: "",
-          alpacaLiveSecret: "",
-          cronExpression: "*/5 * * * *",
-          tradeOutsideHours: false,
-        },
-      });
-    }
-
-    const updateData: Record<string, any> = {};
-    if (alpacaMode !== undefined) updateData.alpacaMode = alpacaMode;
+    const userUpdateData: Record<string, any> = {};
+    if (alpacaMode !== undefined) userUpdateData.alpacaMode = alpacaMode;
     
     if (alpacaPaperKey !== undefined) {
-      updateData.alpacaPaperKey = alpacaPaperKey ? encrypt(alpacaPaperKey) : "";
+      userUpdateData.alpacaPaperKey = alpacaPaperKey ? encrypt(alpacaPaperKey) : "";
     }
     if (alpacaPaperSecret !== undefined && alpacaPaperSecret !== "••••••••••••••••••••") {
-      updateData.alpacaPaperSecret = alpacaPaperSecret ? encrypt(alpacaPaperSecret) : "";
+      userUpdateData.alpacaPaperSecret = alpacaPaperSecret ? encrypt(alpacaPaperSecret) : "";
     }
     if (alpacaLiveKey !== undefined) {
-      updateData.alpacaLiveKey = alpacaLiveKey ? encrypt(alpacaLiveKey) : "";
+      userUpdateData.alpacaLiveKey = alpacaLiveKey ? encrypt(alpacaLiveKey) : "";
     }
     if (alpacaLiveSecret !== undefined && alpacaLiveSecret !== "••••••••••••••••••••") {
-      updateData.alpacaLiveSecret = alpacaLiveSecret ? encrypt(alpacaLiveSecret) : "";
+      userUpdateData.alpacaLiveSecret = alpacaLiveSecret ? encrypt(alpacaLiveSecret) : "";
     }
-    
-    if (cronExpression !== undefined) updateData.cronExpression = cronExpression;
-    if (tradeOutsideHours !== undefined) updateData.tradeOutsideHours = tradeOutsideHours;
 
-    const updated = await prisma.settings.update({
-      where: { id: settings.id },
-      data: updateData,
+    // Update user-specific Alpaca Settings
+    const updatedUser = await prisma.user.update({
+      where: { id: currentUser.id },
+      data: userUpdateData,
     });
 
+    let globalSettings = null;
+    if (cronExpression !== undefined || tradeOutsideHours !== undefined) {
+      if (currentUser.role !== "ADMIN") {
+        return NextResponse.json({ error: "Forbidden: Global settings can only be changed by Admin" }, { status: 403 });
+      }
+
+      let settings = await prisma.settings.findFirst();
+      if (!settings) {
+        settings = await prisma.settings.create({
+          data: {
+            cronExpression: "*/5 * * * *",
+            tradeOutsideHours: false,
+          },
+        });
+      }
+
+      const globalUpdateData: Record<string, any> = {};
+      if (cronExpression !== undefined) globalUpdateData.cronExpression = cronExpression;
+      if (tradeOutsideHours !== undefined) globalUpdateData.tradeOutsideHours = tradeOutsideHours;
+
+      globalSettings = await prisma.settings.update({
+        where: { id: settings.id },
+        data: globalUpdateData,
+      });
+    } else if (currentUser.role === "ADMIN") {
+      globalSettings = await prisma.settings.findFirst();
+    }
+
     const decryptedSettings = {
-      ...updated,
-      alpacaPaperKey: updated.alpacaPaperKey ? decrypt(updated.alpacaPaperKey) : "",
-      alpacaPaperSecret: updated.alpacaPaperSecret ? "••••••••••••••••••••" : "",
-      alpacaLiveKey: updated.alpacaLiveKey ? decrypt(updated.alpacaLiveKey) : "",
-      alpacaLiveSecret: updated.alpacaLiveSecret ? "••••••••••••••••••••" : "",
+      alpacaMode: updatedUser.alpacaMode,
+      alpacaPaperKey: updatedUser.alpacaPaperKey ? decrypt(updatedUser.alpacaPaperKey) : "",
+      alpacaPaperSecret: updatedUser.alpacaPaperSecret ? "••••••••••••••••••••" : "",
+      alpacaLiveKey: updatedUser.alpacaLiveKey ? decrypt(updatedUser.alpacaLiveKey) : "",
+      alpacaLiveSecret: updatedUser.alpacaLiveSecret ? "••••••••••••••••••••" : "",
+      cronExpression: globalSettings?.cronExpression ?? "*/5 * * * *",
+      tradeOutsideHours: globalSettings?.tradeOutsideHours ?? false,
     };
 
     return NextResponse.json({ data: decryptedSettings });

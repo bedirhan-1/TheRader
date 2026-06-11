@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-const navItems = [
+const navItems: { label: string; href: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
@@ -26,6 +26,26 @@ const navItems = [
         <rect x="14" y="3" width="7" height="7" />
         <rect x="14" y="14" width="7" height="7" />
         <rect x="3" y="14" width="7" height="7" />
+      </svg>
+    ),
+  },
+  {
+    label: "Cüzdan",
+    href: "/wallet",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4" />
+        <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
+        <path d="M18 12a2 2 0 00-2 2v2a2 2 0 002 2h4v-6H18z" />
       </svg>
     ),
   },
@@ -63,6 +83,26 @@ const navItems = [
       >
         <circle cx="12" cy="12" r="3" />
         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Algoritma Bilgisi",
+    href: "/algorithms",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
       </svg>
     ),
   },
@@ -106,7 +146,6 @@ const navItems = [
         <circle cx="12" cy="12" r="3" />
       </svg>
     ),
-    adminOnly: true,
   },
 ];
 
@@ -209,7 +248,11 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => {
+              if (window.confirm("Çıkış yapmak istediğinize emin misiniz?")) {
+                signOut({ callbackUrl: "/login" });
+              }
+            }}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
           >
             <svg

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { decrypt } from "./crypto";
+import { OrderStatus } from "@prisma/client";
 
 // ---------- Types ----------
 
@@ -135,37 +136,33 @@ export class AlpacaError extends Error {
 
 // ---------- Core fetch ----------
 
-async function getSettings() {
-  const settings = await prisma.settings.findUnique({
-    where: { id: "singleton" },
-  });
-  if (!settings) {
-    throw new Error("Settings not configured. Go to Settings page.");
+async function getCredentialsForUser(userId: string) {
+  const user = (await prisma.user.findUnique({
+    where: { id: userId },
+  })) as {
+    id: string;
+    email: string;
+    name: string | null;
+    role: any;
+    alpacaMode: string;
+    alpacaPaperKey: string | null;
+    alpacaPaperSecret: string | null;
+    alpacaLiveKey: string | null;
+    alpacaLiveSecret: string | null;
+  } | null;
+
+  if (!user) {
+    throw new Error("Kullanıcı bulunamadı");
   }
-  return settings;
-}
-
-function getBaseUrl(mode: string): string {
-  return mode === "live"
-    ? "https://api.alpaca.markets"
-    : "https://paper-api.alpaca.markets";
-}
-
-function getDataBaseUrl(): string {
-  return "https://data.alpaca.markets";
-}
-
-async function getCredentials() {
-  const settings = await getSettings();
-  const mode = settings.alpacaMode;
+  const mode = user.alpacaMode || "paper";
   const keyEncrypted =
-    mode === "live" ? settings.alpacaLiveKey : settings.alpacaPaperKey;
+    mode === "live" ? user.alpacaLiveKey : user.alpacaPaperKey;
   const secretEncrypted =
-    mode === "live" ? settings.alpacaLiveSecret : settings.alpacaPaperSecret;
+    mode === "live" ? user.alpacaLiveSecret : user.alpacaPaperSecret;
 
   if (!keyEncrypted || !secretEncrypted) {
     throw new AlpacaError(
-      `Alpaca ${mode} API credentials not configured`,
+      `Alpaca ${mode} API kimlik bilgileri yapılandırılmamış`,
       401
     );
   }
@@ -177,133 +174,221 @@ async function getCredentials() {
   };
 }
 
-export async function alpacaFetch<T>(
-  path: string,
-  options?: RequestInit & { useDataApi?: boolean }
-): Promise<T> {
-  const creds = await getCredentials();
-  const baseUrl = options?.useDataApi
-    ? getDataBaseUrl()
-    : getBaseUrl(creds.mode);
+export function getAlpacaClient(userId: string) {
+  async function userAlpacaFetch<T>(
+    path: string,
+    options?: RequestInit & { useDataApi?: boolean }
+  ): Promise<T> {
+    const creds = await getCredentialsForUser(userId);
+    const baseUrl = options?.useDataApi
+      ? "https://data.alpaca.markets"
+      : (creds.mode === "live" ? "https://api.alpaca.markets" : "https://paper-api.alpaca.markets");
 
-  const url = `${baseUrl}${path}`;
+    const url = `${baseUrl}${path}`;
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "APCA-API-KEY-ID": creds.key,
-      "APCA-API-SECRET-KEY": creds.secret,
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        "APCA-API-KEY-ID": creds.key,
+        "APCA-API-SECRET-KEY": creds.secret,
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    });
 
-  if (!res.ok) {
-    let body: unknown;
-    try {
-      body = await res.json();
-    } catch {
-      body = await res.text();
+    if (!res.ok) {
+      let body: unknown;
+      try {
+        body = await res.json();
+      } catch {
+        body = await res.text();
+      }
+      throw new AlpacaError(
+        `Alpaca API hatası: ${res.status} ${res.statusText}`,
+        res.status,
+        body
+      );
     }
-    throw new AlpacaError(
-      `Alpaca API error: ${res.status} ${res.statusText}`,
-      res.status,
-      body
-    );
+
+    if (res.status === 204) return undefined as T;
+    return res.json() as Promise<T>;
   }
 
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  return {
+    getAccount(): Promise<AlpacaAccount> {
+      return userAlpacaFetch<AlpacaAccount>("/v2/account");
+    },
+
+    getPositions(): Promise<AlpacaPosition[]> {
+      return userAlpacaFetch<AlpacaPosition[]>("/v2/positions");
+    },
+
+    getOrders(params?: GetOrdersParams): Promise<AlpacaOrder[]> {
+      const searchParams = new URLSearchParams();
+      if (params?.status) searchParams.set("status", params.status);
+      if (params?.limit) searchParams.set("limit", String(params.limit));
+      if (params?.after) searchParams.set("after", params.after);
+      if (params?.until) searchParams.set("until", params.until);
+      if (params?.direction) searchParams.set("direction", params.direction);
+      if (params?.symbols) searchParams.set("symbols", params.symbols);
+      const qs = searchParams.toString();
+      return userAlpacaFetch<AlpacaOrder[]>(`/v2/orders${qs ? `?${qs}` : ""}`);
+    },
+
+    getOrder(orderId: string): Promise<AlpacaOrder> {
+      return userAlpacaFetch<AlpacaOrder>(`/v2/orders/${orderId}`);
+    },
+
+    placeOrder(params: PlaceOrderParams): Promise<AlpacaOrder> {
+      return userAlpacaFetch<AlpacaOrder>("/v2/orders", {
+        method: "POST",
+        body: JSON.stringify(params),
+      });
+    },
+
+    cancelOrder(orderId: string): Promise<void> {
+      return userAlpacaFetch<void>(`/v2/orders/${orderId}`, {
+        method: "DELETE",
+      });
+    },
+
+    getBars(
+      symbol: string,
+      timeframe: string,
+      start: string,
+      end: string
+    ): Promise<{ bars: Bar[] }> {
+      const params = new URLSearchParams({
+        timeframe,
+        start,
+        end,
+        limit: "1000",
+        adjustment: "split",
+        feed: "iex",
+      });
+      return userAlpacaFetch<{ bars: Bar[] }>(
+        `/v2/stocks/${symbol}/bars?${params.toString()}`,
+        { useDataApi: true }
+      );
+    },
+
+    getSnapshots(
+      symbols: string[]
+    ): Promise<Record<string, Snapshot>> {
+      const params = new URLSearchParams({
+        symbols: symbols.join(","),
+        feed: "iex",
+      });
+      return userAlpacaFetch<Record<string, Snapshot>>(
+        `/v2/stocks/snapshots?${params.toString()}`,
+        { useDataApi: true }
+      );
+    },
+
+    getAsset(symbol: string): Promise<AlpacaAsset> {
+      return userAlpacaFetch<AlpacaAsset>(`/v2/assets/${symbol}`);
+    },
+
+    getAssets(status?: string, assetClass?: string): Promise<AlpacaAsset[]> {
+      const params = new URLSearchParams();
+      if (status) params.append("status", status);
+      if (assetClass) params.append("asset_class", assetClass);
+      const qs = params.toString();
+      return userAlpacaFetch<AlpacaAsset[]>(`/v2/assets${qs ? `?${qs}` : ""}`);
+    },
+
+    getPortfolioHistory(
+      period: string,
+      timeframe: string
+    ): Promise<PortfolioHistory> {
+      const params = new URLSearchParams({ period, timeframe });
+      return userAlpacaFetch<PortfolioHistory>(
+        `/v2/account/portfolio/history?${params.toString()}`
+      );
+    },
+  };
 }
 
-// ---------- Endpoint wrappers ----------
+interface SafeOrderQuery {
+  findMany(args: {
+    where: {
+      userId?: string;
+      status?: OrderStatus;
+      alpacaId?: { not: null } | string | null;
+    };
+  }): Promise<Array<{
+    id: string;
+    alpacaId: string | null;
+    status: OrderStatus;
+    filledAt: Date | null;
+    createdAt: Date;
+  }>>;
+  update(args: {
+    where: { id: string };
+    data: {
+      status?: OrderStatus;
+      filledAt?: Date | null;
+    };
+  }): Promise<any>;
+}
 
-export const alpaca = {
-  getAccount(): Promise<AlpacaAccount> {
-    return alpacaFetch<AlpacaAccount>("/v2/account");
-  },
-
-  getPositions(): Promise<AlpacaPosition[]> {
-    return alpacaFetch<AlpacaPosition[]>("/v2/positions");
-  },
-
-  getOrders(params?: GetOrdersParams): Promise<AlpacaOrder[]> {
-    const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.set("status", params.status);
-    if (params?.limit) searchParams.set("limit", String(params.limit));
-    if (params?.after) searchParams.set("after", params.after);
-    if (params?.until) searchParams.set("until", params.until);
-    if (params?.direction) searchParams.set("direction", params.direction);
-    if (params?.symbols) searchParams.set("symbols", params.symbols);
-    const qs = searchParams.toString();
-    return alpacaFetch<AlpacaOrder[]>(`/v2/orders${qs ? `?${qs}` : ""}`);
-  },
-
-  placeOrder(params: PlaceOrderParams): Promise<AlpacaOrder> {
-    return alpacaFetch<AlpacaOrder>("/v2/orders", {
-      method: "POST",
-      body: JSON.stringify(params),
+export async function syncPendingOrders(userId: string) {
+  try {
+    const orderClient = prisma.order as unknown as SafeOrderQuery;
+    const pendingOrders = await orderClient.findMany({
+      where: {
+        userId,
+        status: "PENDING",
+        alpacaId: { not: null },
+      },
     });
-  },
 
-  cancelOrder(orderId: string): Promise<void> {
-    return alpacaFetch<void>(`/v2/orders/${orderId}`, {
-      method: "DELETE",
-    });
-  },
+    if (pendingOrders.length === 0) {
+      return;
+    }
 
-  getBars(
-    symbol: string,
-    timeframe: string,
-    start: string,
-    end: string
-  ): Promise<{ bars: Bar[] }> {
-    const params = new URLSearchParams({
-      timeframe,
-      start,
-      end,
-      limit: "1000",
-      adjustment: "split",
-      feed: "iex",
-    });
-    return alpacaFetch<{ bars: Bar[] }>(
-      `/v2/stocks/${symbol}/bars?${params.toString()}`,
-      { useDataApi: true }
+    const alpaca = getAlpacaClient(userId);
+
+    // Sync each pending order
+    await Promise.allSettled(
+      pendingOrders.map(async (order) => {
+        const alpacaId = order.alpacaId;
+        if (!alpacaId) return;
+        try {
+          const alpacaOrder = await alpaca.getOrder(alpacaId);
+          let newStatus: OrderStatus = "PENDING";
+          let filledAt: Date | null = null;
+
+          if (alpacaOrder.status === "filled") {
+            newStatus = "FILLED";
+            const filledAtStr = alpacaOrder.filled_at;
+            filledAt = filledAtStr ? new Date(filledAtStr) : new Date();
+          } else if (
+            alpacaOrder.status === "canceled" ||
+            alpacaOrder.status === "expired" ||
+            alpacaOrder.status === "done_for_day"
+          ) {
+            newStatus = "CANCELLED";
+          } else if (alpacaOrder.status === "rejected") {
+            newStatus = "REJECTED";
+          }
+
+          if (newStatus !== "PENDING") {
+            await orderClient.update({
+              where: { id: order.id },
+              data: {
+                status: newStatus,
+                filledAt,
+              },
+            });
+            console.log(`[Order Sync] Updated order ${order.id} (Alpaca: ${alpacaId}) status to ${newStatus}`);
+          }
+        } catch (err) {
+          console.error(`Error syncing order ${order.id}:`, err);
+        }
+      })
     );
-  },
-
-  getSnapshots(
-    symbols: string[]
-  ): Promise<Record<string, Snapshot>> {
-    const params = new URLSearchParams({
-      symbols: symbols.join(","),
-      feed: "iex",
-    });
-    return alpacaFetch<Record<string, Snapshot>>(
-      `/v2/stocks/snapshots?${params.toString()}`,
-      { useDataApi: true }
-    );
-  },
-
-  getAsset(symbol: string): Promise<AlpacaAsset> {
-    return alpacaFetch<AlpacaAsset>(`/v2/assets/${symbol}`);
-  },
-
-  getAssets(status?: string, assetClass?: string): Promise<AlpacaAsset[]> {
-    const params = new URLSearchParams();
-    if (status) params.append("status", status);
-    if (assetClass) params.append("asset_class", assetClass);
-    const qs = params.toString();
-    return alpacaFetch<AlpacaAsset[]>(`/v2/assets${qs ? `?${qs}` : ""}`);
-  },
-
-  getPortfolioHistory(
-    period: string,
-    timeframe: string
-  ): Promise<PortfolioHistory> {
-    const params = new URLSearchParams({ period, timeframe });
-    return alpacaFetch<PortfolioHistory>(
-      `/v2/account/portfolio/history?${params.toString()}`
-    );
-  },
-};
+  } catch (error) {
+    console.error("Error in syncPendingOrders:", error);
+  }
+}

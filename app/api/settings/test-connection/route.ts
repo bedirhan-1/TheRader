@@ -5,13 +5,8 @@ import { decrypt } from "@/lib/crypto";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -25,8 +20,10 @@ export async function POST(request: NextRequest) {
     // If masked placeholder is provided, retrieve key from DB depending on mode
     if (secretKey === "••••••••••••••••••••") {
       const { prisma } = await import("@/lib/prisma");
-      const settings = await prisma.settings.findFirst();
-      const secretEncrypted = isLive ? settings?.alpacaLiveSecret : settings?.alpacaPaperSecret;
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+      });
+      const secretEncrypted = isLive ? user?.alpacaLiveSecret : user?.alpacaPaperSecret;
       
       if (secretEncrypted) {
         secretKey = decrypt(secretEncrypted);

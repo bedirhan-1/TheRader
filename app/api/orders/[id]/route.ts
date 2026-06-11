@@ -2,22 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alpaca } from "@/lib/alpaca";
+import { getAlpacaClient, syncPendingOrders } from "@/lib/alpaca";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Sync order statuses before returning
+  await syncPendingOrders(session.user.id);
 
   const { id } = await params;
 
   try {
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: { id, userId: session.user.id },
       include: { stock: true, strategy: true },
     });
 
@@ -37,19 +40,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+  const user = session.user as { id: string; role?: string };
   const { id } = await params;
 
   try {
-    const order = await prisma.order.findUnique({ where: { id } });
+    const order = await prisma.order.findFirst({
+      where: { id, userId: user.id },
+    });
     if (!order) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -57,6 +58,7 @@ export async function DELETE(
     // Cancel on Alpaca if has alpacaId
     if (order.alpacaId) {
       try {
+        const alpaca = getAlpacaClient(user.id);
         await alpaca.cancelOrder(order.alpacaId);
       } catch {
         // May already be filled/cancelled

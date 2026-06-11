@@ -8,14 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const { id } = await params;
-    const strategy = await prisma.strategy.findUnique({
-      where: { id },
+    const strategy = await prisma.strategy.findFirst({
+      where: { id, userId: session.user.id },
       include: {
         stock: {
           select: {
@@ -41,12 +41,23 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const user = session.user as { id: string; role?: string };
+
   try {
     const { id } = await params;
+    
+    // Ensure strategy belongs to user
+    const existing = await prisma.strategy.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Strategy not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const { name, stockId, type, params: strategyParams, action, qty, enabled } = body;
 
@@ -83,17 +94,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const user = session.user as { id: string; role?: string };
 
   try {
     const { id } = await params;
+
+    // Ensure strategy belongs to user
+    const existing = await prisma.strategy.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Strategy not found" }, { status: 404 });
+    }
+
     await prisma.strategy.delete({
       where: { id },
     });

@@ -5,12 +5,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const strategies = await prisma.strategy.findMany({
+      where: { userId: session.user.id },
       include: {
         stock: {
           select: {
@@ -31,14 +32,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const user = session.user as { id: string; role?: string };
 
   try {
     const body = await request.json();
@@ -53,6 +51,7 @@ export async function POST(request: NextRequest) {
         name,
         stockId,
         type,
+        userId: user.id,
         params: params || {},
         action,
         orderType: orderType || "MARKET",

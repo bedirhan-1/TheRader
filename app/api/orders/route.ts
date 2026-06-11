@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alpaca } from "@/lib/alpaca";
+import { getAlpacaClient, syncPendingOrders } from "@/lib/alpaca";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Sync order statuses before returning
+  await syncPendingOrders(session.user.id);
 
   const searchParams = request.nextUrl.searchParams;
   const page = parseInt(searchParams.get("page") || "1");
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest) {
   const side = searchParams.get("side");
   const symbol = searchParams.get("symbol");
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, any> = { userId: session.user.id };
   if (status) where.status = status;
   if (side) where.side = side;
   if (symbol) where.stock = { symbol: { contains: symbol.toUpperCase() } };
@@ -43,18 +46,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = session.user as { role?: string };
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const user = session.user as { id: string; role?: string };
 
   try {
     const body = await request.json();
     const { symbol, side, qty, type, time_in_force, limit_price, stop_price } = body;
+
+    const alpaca = getAlpacaClient(user.id);
 
     // Place order via Alpaca
     const alpacaOrder = await alpaca.placeOrder({
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.create({
       data: {
         alpacaId: alpacaOrder.id,
+        userId: user.id,
         stockId: stock.id,
         side: side.toUpperCase() as "BUY" | "SELL",
         qty: parseFloat(String(qty)),

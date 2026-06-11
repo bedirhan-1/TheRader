@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 const publicPaths = ["/login", "/api/auth"];
 const cronPaths = ["/api/cron"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
@@ -32,11 +32,6 @@ export async function middleware(request: NextRequest) {
 
   // Root redirect → dashboard
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Settings page → ADMIN only
-  if (pathname.startsWith("/settings") && token.role !== "ADMIN") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

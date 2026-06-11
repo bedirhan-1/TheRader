@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { alpaca } from "@/lib/alpaca";
+import { getAlpacaClient } from "@/lib/alpaca";
 
 // In-memory cache for Alpaca asset list
 let cachedAssets: any[] | null = null;
@@ -10,7 +10,7 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const now = Date.now();
     if (!cachedAssets || now - lastFetched > CACHE_TTL) {
       // Fetch active, tradable US equities from Alpaca
+      const alpaca = getAlpacaClient(session.user.id);
       const allAssets = await alpaca.getAssets("active", "us_equity");
       cachedAssets = allAssets.filter((asset: any) => asset.tradable);
       lastFetched = now;

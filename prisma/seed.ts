@@ -27,7 +27,6 @@ async function main() {
     update: {},
     create: {
       id: "singleton",
-      alpacaMode: "paper",
       cronExpression: "*/5 * * * *",
       tradeOutsideHours: false,
     },

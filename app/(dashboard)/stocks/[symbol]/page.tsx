@@ -1,11 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -58,7 +63,9 @@ export default function StockDetailPage({
   params: Promise<{ symbol: string }>;
 }) {
   const { symbol } = use(params);
+  const router = useRouter();
   const [selectedTf, setSelectedTf] = useState("1M");
+  const [customDays, setCustomDays] = useState<number>(30);
   const tf = timeframes.find((t) => t.value === selectedTf) || timeframes[2];
 
   const { data: stockData, isLoading: stockLoading } = useQuery({
@@ -67,17 +74,59 @@ export default function StockDetailPage({
   });
 
   const { data: barsData, isLoading: barsLoading } = useQuery({
-    queryKey: ["bars", symbol, selectedTf],
-    queryFn: () =>
-      fetch(
-        `/api/stocks/${symbol}/bars?timeframe=${tf.tf}&days=${tf.days}`
-      ).then((r) => r.json()),
+    queryKey: ["bars", symbol, selectedTf, selectedTf === "custom" ? customDays : null],
+    queryFn: () => {
+      const days = selectedTf === "custom" ? customDays : tf.days;
+      const timeframeVal = selectedTf === "custom" ? (customDays <= 7 ? "1Hour" : "1Day") : tf.tf;
+      return fetch(
+        `/api/stocks/${symbol}/bars?timeframe=${timeframeVal}&days=${days}`
+      ).then((r) => r.json());
+    },
   });
 
   const { data: ordersData } = useQuery({
     queryKey: ["stockOrders", symbol],
     queryFn: () =>
       fetch(`/api/orders?symbol=${symbol}&limit=20`).then((r) => r.json()),
+  });
+
+  const queryClient = useQueryClient();
+  const [tradeSide, setTradeSide] = useState<"BUY" | "SELL">("BUY");
+  const [tradeType, setTradeType] = useState<"MARKET" | "LIMIT" | "STOP">("MARKET");
+  const [tradeQty, setTradeQty] = useState("");
+  const [limitPrice, setLimitPrice] = useState("");
+
+  const tradeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: symbol.toUpperCase(),
+          side: tradeSide.toLowerCase(),
+          qty: parseFloat(tradeQty),
+          type: tradeType.toLowerCase(),
+          time_in_force: "day",
+          ...(tradeType !== "MARKET" && limitPrice ? { limit_price: parseFloat(limitPrice) } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stockOrders", symbol] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      toast.success("Emir başarıyla iletildi");
+      setTradeQty("");
+      setLimitPrice("");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Emir gönderilirken hata oluştu");
+    },
   });
 
   const stock = stockData?.data;
@@ -147,205 +196,368 @@ export default function StockDetailPage({
             </div>
           )}
         </div>
+        {!stockLoading && (
+          <Button
+            onClick={() => router.push(`/strategies/new?symbol=${symbol}`)}
+            className="flex items-center gap-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:via-indigo-500 hover:to-blue-500 text-white font-medium border-0 transition-all duration-300 shadow-[0_0_15px_rgba(124,58,237,0.25)] hover:shadow-[0_0_25px_rgba(124,58,237,0.55)] hover:-translate-y-0.5 active:translate-y-0 h-9 px-4 rounded-md"
+          >
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <span>Strateji Oluştur</span>
+          </Button>
+        )}
       </div>
 
-      {/* Chart */}
-      <Card className="border-border bg-card">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Fiyat Grafiği
-          </CardTitle>
-          <div className="flex gap-1">
-            {timeframes.map((t) => (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column: Chart & Info Tables */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Chart */}
+          <Card className="border-border bg-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Fiyat Grafiği
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 bg-zinc-900/60 p-0.5 rounded-md border border-border">
+                  {timeframes.map((t) => (
+                    <Button
+                      key={t.value}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedTf(t.value)}
+                      className={cn(
+                        "h-7 px-2 text-xs",
+                        selectedTf === t.value
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {t.label}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedTf("custom")}
+                    className={cn(
+                      "h-7 px-2 text-xs",
+                      selectedTf === "custom"
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    Özel
+                  </Button>
+                </div>
+                {selectedTf === "custom" && (
+                  <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={customDays}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 1;
+                        setCustomDays(val);
+                      }}
+                      className="h-7 w-16 text-center text-xs font-mono bg-zinc-900/60 border-border focus-visible:ring-offset-0 focus-visible:ring-1 focus-visible:ring-info"
+                    />
+                    <span className="text-xs text-muted-foreground">Gün</span>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {barsLoading ? (
+                <Skeleton className="h-[300px] w-full" />
+              ) : chartData.length === 0 ? (
+                <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+                  Veri bulunamadı.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={chartData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      yAxisId="price"
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+                      width={55}
+                    />
+                    <YAxis
+                      yAxisId="volume"
+                      orientation="right"
+                      tick={false}
+                      axisLine={false}
+                      tickLine={false}
+                      width={0}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        color: "var(--foreground)",
+                      }}
+                    />
+                    <Bar
+                      yAxisId="volume"
+                      dataKey="volume"
+                      fill="var(--muted-foreground)"
+                      opacity={0.25}
+                    />
+                    <Line
+                      yAxisId="price"
+                      type="monotone"
+                      dataKey="close"
+                      stroke="var(--info)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Bottom grid */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Strategies */}
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Stratejiler
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {strategies.length === 0 ? (
+                  <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+                    Bu hisseye ait strateji yok.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs">Ad</TableHead>
+                        <TableHead className="text-xs">Tür</TableHead>
+                        <TableHead className="text-xs">Durum</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {strategies.map(
+                        (s: { id: string; name: string; type: string; enabled: boolean }) => (
+                          <TableRow key={s.id} className="border-border">
+                            <TableCell className="text-sm">{s.name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {s.type.replace("_", " ")}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  s.enabled
+                                    ? "border-success/20 bg-success/10 text-success"
+                                    : "border-border bg-muted text-muted-foreground"
+                                }
+                              >
+                                {s.enabled ? "Aktif" : "Pasif"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Orders */}
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Emir Geçmişi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {orders.length === 0 ? (
+                  <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+                    Henüz emir yok.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs">Yön</TableHead>
+                        <TableHead className="text-xs">Adet</TableHead>
+                        <TableHead className="text-xs">Durum</TableHead>
+                        <TableHead className="text-xs">Tarih</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map(
+                        (o: {
+                          id: string;
+                          side: string;
+                          qty: number;
+                          status: string;
+                          createdAt: string;
+                        }) => (
+                          <TableRow key={o.id} className="border-border">
+                            <TableCell>
+                              <Badge variant="outline" className={sideColors[o.side]}>
+                                {o.side}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">{o.qty}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusColors[o.status]}>
+                                {o.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(o.createdAt).toLocaleDateString("tr-TR")}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Right Column: Midas-like Trading Card */}
+        <div className="lg:col-span-1">
+          <Card className="border-border bg-card shadow-lg sticky top-6">
+            <CardHeader className="p-4 pb-2 border-b border-border/40">
+              <div className="flex w-full bg-zinc-950 p-1 rounded-lg border border-border/60">
+                <button
+                  type="button"
+                  onClick={() => setTradeSide("BUY")}
+                  className={cn(
+                    "flex-1 py-1.5 rounded-md text-xs font-bold transition-all text-center",
+                    tradeSide === "BUY"
+                      ? "bg-success text-success-foreground shadow animate-in fade-in"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Hisse Al (BUY)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTradeSide("SELL")}
+                  className={cn(
+                    "flex-1 py-1.5 rounded-md text-xs font-bold transition-all text-center",
+                    tradeSide === "SELL"
+                      ? "bg-danger text-danger-foreground shadow animate-in fade-in"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Hisse Sat (SELL)
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {/* Order Type */}
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-semibold text-muted-foreground">Emir Tipi</Label>
+                <Select
+                  value={tradeType}
+                  onValueChange={(v: any) => setTradeType(v || "MARKET")}
+                >
+                  <SelectTrigger className="h-9 border-border bg-background text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MARKET">Piyasa Emri (Market)</SelectItem>
+                    <SelectItem value="LIMIT">Limit Emir (Fiyat Belirle)</SelectItem>
+                    <SelectItem value="STOP">Stop Emir (Tetiklemeli)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Limit Price (only for non-market) */}
+              {tradeType !== "MARKET" && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground">İstenen Fiyat ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={limitPrice}
+                    onChange={(e) => setLimitPrice(e.target.value)}
+                    className="h-9 border-border bg-background font-mono text-xs"
+                    placeholder={price ? `${price}` : "0.00"}
+                  />
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-semibold text-muted-foreground">Adet (Miktar)</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  required
+                  value={tradeQty}
+                  onChange={(e) => setTradeQty(e.target.value)}
+                  className="h-9 border-border bg-background font-mono text-xs"
+                  placeholder="10"
+                />
+              </div>
+
+              {/* Pricing Info Summary */}
+              <div className="bg-zinc-950/40 p-3 rounded-lg border border-border/50 space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Anlık Hisse Fiyatı:</span>
+                  <span className="font-mono text-foreground font-semibold">
+                    {price ? `$${price.toFixed(2)}` : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t border-border/30 pt-2 text-sm font-semibold">
+                  <span>Tahmini Tutar:</span>
+                  <span className={cn("font-mono", tradeSide === "BUY" ? "text-success" : "text-danger")}>
+                    {price && tradeQty ? `$${(price * parseFloat(tradeQty) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$0.00"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
               <Button
-                key={t.value}
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedTf(t.value)}
+                type="button"
+                disabled={tradeMutation.isPending || !tradeQty || parseFloat(tradeQty) <= 0}
+                onClick={() => tradeMutation.mutate()}
                 className={cn(
-                  "h-7 px-2 text-xs",
-                  selectedTf === t.value
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground"
+                  "w-full h-10 font-bold text-xs tracking-wide transition-all shadow-md active:scale-95 duration-100",
+                  tradeSide === "BUY"
+                    ? "bg-success text-success-foreground hover:bg-success/90"
+                    : "bg-danger text-danger-foreground hover:bg-danger/90"
                 )}
               >
-                {t.label}
+                {tradeMutation.isPending ? (
+                  "Emir İletiliyor..."
+                ) : (
+                  `${symbol} ${tradeSide === "BUY" ? "AL" : "SAT"}`
+                )}
               </Button>
-            ))}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {barsLoading ? (
-            <Skeleton className="h-[300px] w-full" />
-          ) : chartData.length === 0 ? (
-            <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-              Veri bulunamadı.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  yAxisId="price"
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) => `$${v.toFixed(0)}`}
-                  width={55}
-                />
-                <YAxis
-                  yAxisId="volume"
-                  orientation="right"
-                  tick={false}
-                  axisLine={false}
-                  tickLine={false}
-                  width={0}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    color: "var(--foreground)",
-                  }}
-                />
-                <Bar
-                  yAxisId="volume"
-                  dataKey="volume"
-                  fill="var(--muted-foreground)"
-                  opacity={0.25}
-                />
-                <Line
-                  yAxisId="price"
-                  type="monotone"
-                  dataKey="close"
-                  stroke="var(--info)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Bottom grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Strategies */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Stratejiler
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {strategies.length === 0 ? (
-              <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
-                Bu hisseye ait strateji yok.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-xs">Ad</TableHead>
-                    <TableHead className="text-xs">Tür</TableHead>
-                    <TableHead className="text-xs">Durum</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {strategies.map(
-                    (s: { id: string; name: string; type: string; enabled: boolean }) => (
-                      <TableRow key={s.id} className="border-border">
-                        <TableCell className="text-sm">{s.name}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {s.type.replace("_", " ")}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              s.enabled
-                                ? "border-success/20 bg-success/10 text-success"
-                                : "border-border bg-muted text-muted-foreground"
-                            }
-                          >
-                            {s.enabled ? "Aktif" : "Pasif"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Orders */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Emir Geçmişi
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {orders.length === 0 ? (
-              <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
-                Henüz emir yok.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-xs">Yön</TableHead>
-                    <TableHead className="text-xs">Adet</TableHead>
-                    <TableHead className="text-xs">Durum</TableHead>
-                    <TableHead className="text-xs">Tarih</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map(
-                    (o: {
-                      id: string;
-                      side: string;
-                      qty: number;
-                      status: string;
-                      createdAt: string;
-                    }) => (
-                      <TableRow key={o.id} className="border-border">
-                        <TableCell>
-                          <Badge variant="outline" className={sideColors[o.side]}>
-                            {o.side}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{o.qty}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={statusColors[o.status]}>
-                            {o.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {new Date(o.createdAt).toLocaleDateString("tr-TR")}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function ActiveStrategies() {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const { data, isLoading } = useQuery({
     queryKey: ["strategies"],
@@ -16,13 +18,7 @@ export function ActiveStrategies() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({
-      id,
-      enabled,
-    }: {
-      id: string;
-      enabled: boolean;
-    }) => {
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const res = await fetch(`/api/strategies/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -75,12 +71,17 @@ export function ActiveStrategies() {
                   key={strategy.id}
                   className="flex items-center justify-between rounded-md border border-border p-3"
                 >
-                  <div className="space-y-1">
+                  <div
+                    className="space-y-1 cursor-pointer group flex-1"
+                    onClick={() =>
+                      router.push(`/stocks/${strategy.stock?.symbol}`)
+                    }
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium group-hover:text-info transition-colors">
                         {strategy.name}
                       </span>
-                      <span className="font-mono text-xs text-muted-foreground">
+                      <span className="font-mono text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                         {strategy.stock?.symbol}
                       </span>
                     </div>
@@ -89,9 +90,9 @@ export function ActiveStrategies() {
                       {strategy.lastTriggered && (
                         <span>
                           Son:{" "}
-                          {new Date(
-                            strategy.lastTriggered
-                          ).toLocaleDateString("tr-TR")}
+                          {new Date(strategy.lastTriggered).toLocaleDateString(
+                            "tr-TR",
+                          )}
                         </span>
                       )}
                     </div>
@@ -106,7 +107,7 @@ export function ActiveStrategies() {
                     }
                   />
                 </div>
-              )
+              ),
             )}
           </div>
         )}
