@@ -223,8 +223,8 @@ export default function StockDetailPage({
                 <Bar
                   yAxisId="volume"
                   dataKey="volume"
-                  fill="var(--muted)"
-                  opacity={0.3}
+                  fill="var(--muted-foreground)"
+                  opacity={0.25}
                 />
                 <Line
                   yAxisId="price"

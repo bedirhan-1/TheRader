@@ -19,6 +19,7 @@ export async function GET() {
     const users = await prisma.user.findMany({
       select: {
         id: true,
+        name: true,
         email: true,
         role: true,
         createdAt: true,
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password, role } = body;
+    const { email, name, password, role } = body;
 
     if (!email || !password || !role) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -63,11 +64,13 @@ export async function POST(request: NextRequest) {
     const newUser = await prisma.user.create({
       data: {
         email,
+        name: name || null,
         passwordHash: hashedPassword,
         role: role as "ADMIN" | "VIEWER",
       },
       select: {
         id: true,
+        name: true,
         email: true,
         role: true,
         createdAt: true,

@@ -109,15 +109,16 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Emirler</h1>
+      <div className="flex items-center justify-end">
         {isAdmin && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger>
-              <Button className="bg-foreground text-background hover:bg-foreground/90">
-                Manuel Emir
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger
+              render={
+                <Button className="bg-foreground text-background hover:bg-foreground/90">
+                  Manuel Emir
+                </Button>
+              }
+            />
             <DialogContent className="border-border bg-card">
               <DialogHeader>
                 <DialogTitle>Manuel Emir Gönder</DialogTitle>

@@ -289,6 +289,14 @@ export const alpaca = {
     return alpacaFetch<AlpacaAsset>(`/v2/assets/${symbol}`);
   },
 
+  getAssets(status?: string, assetClass?: string): Promise<AlpacaAsset[]> {
+    const params = new URLSearchParams();
+    if (status) params.append("status", status);
+    if (assetClass) params.append("asset_class", assetClass);
+    const qs = params.toString();
+    return alpacaFetch<AlpacaAsset[]>(`/v2/assets${qs ? `?${qs}` : ""}`);
+  },
+
   getPortfolioHistory(
     period: string,
     timeframe: string

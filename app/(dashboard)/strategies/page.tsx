@@ -39,6 +39,7 @@ export default function StrategiesPage() {
     name: "",
     stockId: "",
     type: "RSI" as string,
+    action: "BUY" as string,
     orderType: "MARKET" as string,
     qty: "",
     enabled: false,
@@ -107,6 +108,7 @@ export default function StrategiesPage() {
       name: "",
       stockId: "",
       type: "RSI",
+      action: "BUY",
       orderType: "MARKET",
       qty: "",
       enabled: false,
@@ -129,14 +131,15 @@ export default function StrategiesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Stratejiler</h1>
+      <div className="flex items-center justify-end">
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger>
-            <Button className="bg-foreground text-background hover:bg-foreground/90">
-              Yeni Strateji
-            </Button>
-          </SheetTrigger>
+          <SheetTrigger
+            render={
+              <Button className="bg-foreground text-background hover:bg-foreground/90">
+                Yeni Strateji
+              </Button>
+            }
+          />
           <SheetContent className="w-[400px] border-border bg-card overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Yeni Strateji</SheetTitle>
@@ -197,6 +200,22 @@ export default function StrategiesPage() {
                     <SelectItem value="SMA_CROSSOVER">SMA Crossover</SelectItem>
                     <SelectItem value="MACD">MACD</SelectItem>
                     <SelectItem value="CUSTOM">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">İşlem Yönü</Label>
+                <Select
+                  value={formData.action}
+                  onValueChange={(v) => setFormData({ ...formData, action: v ?? "BUY" })}
+                >
+                  <SelectTrigger className="border-border bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BUY">Al (BUY)</SelectItem>
+                    <SelectItem value="SELL">Sat (SELL)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

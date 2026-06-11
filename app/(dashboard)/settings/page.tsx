@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -60,6 +61,16 @@ export default function SettingsPage() {
     tradeOutsideHours: false,
   });
 
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
   // Populate forms when data loads
   const settings = settingsData?.data;
   useEffect(() => {
@@ -77,6 +88,15 @@ export default function SettingsPage() {
       });
     }
   }, [settings]);
+
+  // Populate profile form when session loads
+  useEffect(() => {
+    if (session?.user) {
+      setProfileForm({
+        name: session.user.name || "",
+      });
+    }
+  }, [session]);
 
   const saveAlpacaMutation = useMutation({
     mutationFn: async (data: typeof alpacaForm) => {
@@ -141,6 +161,52 @@ export default function SettingsPage() {
       toast.success("Bağlantı başarılı!");
     },
     onError: (err: Error) => toast.error(err.message),
+  });
+
+  const saveProfileMutation = useMutation({
+    mutationFn: async (data: { name: string }) => {
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Profil güncellendi. Yeni isminizin aktif olması için çıkış yapıp tekrar giriş yapın.");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err: Error) => toast.error(err.message || "Kaydetme başarısız"),
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: typeof passwordForm) => {
+      if (data.newPassword !== data.confirmPassword) {
+        throw new Error("Yeni şifreler eşleşmiyor");
+      }
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Şifreniz başarıyla güncellendi");
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: (err: Error) => toast.error(err.message || "Şifre güncelleme başarısız"),
   });
 
   // Users
@@ -208,330 +274,447 @@ export default function SettingsPage() {
 
   const users = usersData?.data ?? [];
 
-  if (!isAdmin) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center text-muted-foreground">
-        Bu sayfaya erişim yetkiniz yok.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Ayarlar</h1>
-
-      {/* Alpaca API */}
+      {/* Profile Info Card (Visible to all users) */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Alpaca API</CardTitle>
+          <CardTitle className="text-base">Profil Bilgilerim</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Label className="text-sm text-muted-foreground">Mod</Label>
-            <div className="flex gap-2">
-              {["paper", "live"].map((mode) => (
-                <Button
-                  key={mode}
-                  variant={
-                    alpacaForm.alpacaMode === mode ? "default" : "outline"
-                  }
-                  size="sm"
-                  onClick={() =>
-                    setAlpacaForm({ ...alpacaForm, alpacaMode: mode })
-                  }
-                  className="h-7 text-xs capitalize"
-                >
-                  {mode}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} API Key
-              </Label>
-              <Input
-                type="password"
-                value={
-                  alpacaForm.alpacaMode === "paper"
-                    ? alpacaForm.alpacaPaperKey
-                    : alpacaForm.alpacaLiveKey
-                }
-                onChange={(e) => {
-                  if (alpacaForm.alpacaMode === "paper") {
-                    setAlpacaForm({
-                      ...alpacaForm,
-                      alpacaPaperKey: e.target.value,
-                    });
-                  } else {
-                    setAlpacaForm({
-                      ...alpacaForm,
-                      alpacaLiveKey: e.target.value,
-                    });
-                  }
-                }}
-                className="border-border bg-background font-mono text-xs"
-                placeholder="PK..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} Secret
-              </Label>
-              <Input
-                type="password"
-                value={
-                  alpacaForm.alpacaMode === "paper"
-                    ? alpacaForm.alpacaPaperSecret
-                    : alpacaForm.alpacaLiveSecret
-                }
-                onChange={(e) => {
-                  if (alpacaForm.alpacaMode === "paper") {
-                    setAlpacaForm({
-                      ...alpacaForm,
-                      alpacaPaperSecret: e.target.value,
-                    });
-                  } else {
-                    setAlpacaForm({
-                      ...alpacaForm,
-                      alpacaLiveSecret: e.target.value,
-                    });
-                  }
-                }}
-                className="border-border bg-background font-mono text-xs"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={() => saveAlpacaMutation.mutate(alpacaForm)}
-              disabled={saveAlpacaMutation.isPending}
-              className="bg-foreground text-background hover:bg-foreground/90"
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Profile Detail Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveProfileMutation.mutate(profileForm);
+              }}
+              className="space-y-4"
             >
-              Kaydet
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => testConnectionMutation.mutate()}
-              disabled={testConnectionMutation.isPending}
+              <h3 className="text-sm font-semibold text-muted-foreground">Profil Detayları</h3>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">E-posta</Label>
+                <Input
+                  value={session?.user?.email || ""}
+                  disabled
+                  className="border-border bg-zinc-900/40 cursor-not-allowed text-muted-foreground font-medium text-xs h-9"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Rol</Label>
+                <Input
+                  value={
+                    (session?.user as { role?: string })?.role === "ADMIN"
+                      ? "Yönetici (ADMIN)"
+                      : "Gözlemci (VIEWER)"
+                  }
+                  disabled
+                  className="border-border bg-zinc-900/40 cursor-not-allowed text-muted-foreground font-medium text-xs h-9"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profileName" className="text-xs text-muted-foreground">Ad Soyad</Label>
+                <Input
+                  id="profileName"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  className="border-border bg-background text-xs h-9"
+                  placeholder="Kullanıcı Adı"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={saveProfileMutation.isPending}
+                size="sm"
+                className="bg-foreground text-background hover:bg-foreground/90 h-8 text-xs px-4"
+              >
+                {saveProfileMutation.isPending ? "Kaydediliyor..." : "Adımı Güncelle"}
+              </Button>
+            </form>
+
+            {/* Password Change Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                changePasswordMutation.mutate(passwordForm);
+              }}
+              className="space-y-4 border-t border-border pt-6 md:border-t-0 md:pt-0 md:pl-8 md:border-l"
             >
-              {testConnectionMutation.isPending
-                ? "Test ediliyor..."
-                : "Bağlantıyı Test Et"}
-            </Button>
+              <h3 className="text-sm font-semibold text-muted-foreground">Şifre Değiştir</h3>
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword" className="text-xs text-muted-foreground">Mevcut Şifre</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
+                  }
+                  className="border-border bg-background text-xs h-9"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword" className="text-xs text-muted-foreground">Yeni Şifre</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+                  }
+                  className="border-border bg-background text-xs h-9"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-xs text-muted-foreground">Yeni Şifre (Tekrar)</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+                  }
+                  className="border-border bg-background text-xs h-9"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+                size="sm"
+                className="bg-foreground text-background hover:bg-foreground/90 h-8 text-xs px-4"
+              >
+                {changePasswordMutation.isPending ? "Değiştiriliyor..." : "Şifre Değiştir"}
+              </Button>
+            </form>
           </div>
         </CardContent>
       </Card>
 
-      {/* User Management */}
-      <Card className="border-border bg-card">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Kullanıcı Yönetimi</CardTitle>
-          <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-            <DialogTrigger>
-              <Button
-                size="sm"
-                className="bg-foreground text-background hover:bg-foreground/90"
-              >
-                Kullanıcı Ekle
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="border-border bg-card">
-              <DialogHeader>
-                <DialogTitle>Yeni Kullanıcı</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  addUserMutation.mutate(newUser);
-                }}
-                className="space-y-4"
-              >
-                <Input
-                  placeholder="Ad"
-                  value={newUser.name}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, name: e.target.value })
+      {/* Admin Settings Sections */}
+      {isAdmin && (
+        <>
+          {/* Alpaca API */}
+          <Card className="border-border bg-card animate-in fade-in duration-200">
+            <CardHeader>
+              <CardTitle className="text-base">Alpaca API</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Label className="text-sm text-muted-foreground">Mod</Label>
+                <div className="flex gap-2">
+                  {["paper", "live"].map((mode) => (
+                    <Button
+                      key={mode}
+                      variant={
+                        alpacaForm.alpacaMode === mode ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        setAlpacaForm({ ...alpacaForm, alpacaMode: mode })
+                      }
+                      className="h-7 text-xs capitalize"
+                    >
+                      {mode}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} API Key
+                  </Label>
+                  <Input
+                    type="password"
+                    value={
+                      alpacaForm.alpacaMode === "paper"
+                        ? alpacaForm.alpacaPaperKey
+                        : alpacaForm.alpacaLiveKey
+                    }
+                    onChange={(e) => {
+                      if (alpacaForm.alpacaMode === "paper") {
+                        setAlpacaForm({
+                          ...alpacaForm,
+                          alpacaPaperKey: e.target.value,
+                        });
+                      } else {
+                        setAlpacaForm({
+                          ...alpacaForm,
+                          alpacaLiveKey: e.target.value,
+                        });
+                      }
+                    }}
+                    className="border-border bg-background font-mono text-xs"
+                    placeholder="PK..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} Secret
+                  </Label>
+                  <Input
+                    type="password"
+                    value={
+                      alpacaForm.alpacaMode === "paper"
+                        ? alpacaForm.alpacaPaperSecret
+                        : alpacaForm.alpacaLiveSecret
+                    }
+                    onChange={(e) => {
+                      if (alpacaForm.alpacaMode === "paper") {
+                        setAlpacaForm({
+                          ...alpacaForm,
+                          alpacaPaperSecret: e.target.value,
+                        });
+                      } else {
+                        setAlpacaForm({
+                          ...alpacaForm,
+                          alpacaLiveSecret: e.target.value,
+                        });
+                      }
+                    }}
+                    className="border-border bg-background font-mono text-xs"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => saveAlpacaMutation.mutate(alpacaForm)}
+                  disabled={saveAlpacaMutation.isPending}
+                  className="bg-foreground text-background hover:bg-foreground/90"
+                >
+                  Kaydet
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => testConnectionMutation.mutate()}
+                  disabled={testConnectionMutation.isPending}
+                >
+                  {testConnectionMutation.isPending
+                    ? "Test ediliyor..."
+                    : "Bağlantıyı Test Et"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* User Management */}
+          <Card className="border-border bg-card animate-in fade-in duration-200">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Kullanıcı Yönetimi</CardTitle>
+              <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+                <DialogTrigger
+                  render={
+                    <Button
+                      size="sm"
+                      className="bg-foreground text-background hover:bg-foreground/90"
+                    >
+                      Kullanıcı Ekle
+                    </Button>
                   }
-                  className="border-border bg-background"
                 />
-                <Input
-                  placeholder="E-posta"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, email: e.target.value })
-                  }
-                  className="border-border bg-background"
-                />
-                <Input
-                  placeholder="Şifre"
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, password: e.target.value })
-                  }
-                  className="border-border bg-background"
-                />
+                <DialogContent className="border-border bg-card">
+                  <DialogHeader>
+                    <DialogTitle>Yeni Kullanıcı</DialogTitle>
+                  </DialogHeader>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      addUserMutation.mutate(newUser);
+                    }}
+                    className="space-y-4"
+                  >
+                    <Input
+                      placeholder="Ad"
+                      value={newUser.name}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, name: e.target.value })
+                      }
+                      className="border-border bg-background"
+                    />
+                    <Input
+                      placeholder="E-posta"
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, email: e.target.value })
+                      }
+                      className="border-border bg-background"
+                    />
+                    <Input
+                      placeholder="Şifre"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, password: e.target.value })
+                      }
+                      className="border-border bg-background"
+                    />
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(v) =>
+                        setNewUser({ ...newUser, role: v ?? "VIEWER" })
+                      }
+                    >
+                      <SelectTrigger className="border-border bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="VIEWER">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="submit"
+                      disabled={addUserMutation.isPending}
+                      className="w-full bg-foreground text-background hover:bg-foreground/90"
+                    >
+                      Ekle
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-xs">Ad</TableHead>
+                    <TableHead className="text-xs">E-posta</TableHead>
+                    <TableHead className="text-xs">Rol</TableHead>
+                    <TableHead className="text-xs">Tarih</TableHead>
+                    <TableHead className="text-xs"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usersLoading
+                    ? Array.from({ length: 2 }).map((_, i) => (
+                        <TableRow key={i} className="border-border">
+                          {Array.from({ length: 5 }).map((_, j) => (
+                            <TableCell key={j}>
+                              <Skeleton className="h-4 w-20" />
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    : users.map(
+                        (user: {
+                          id: string;
+                          name: string | null;
+                          email: string;
+                          role: string;
+                          createdAt: string;
+                        }) => (
+                          <TableRow key={user.id} className="border-border">
+                            <TableCell className="text-sm">
+                              {user.name || "—"}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {user.email}
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={user.role}
+                                onValueChange={(v) =>
+                                  changeRoleMutation.mutate({
+                                    id: user.id,
+                                    role: v ?? "VIEWER",
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-7 w-[100px] border-border bg-background text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ADMIN">Admin</SelectItem>
+                                  <SelectItem value="VIEWER">Viewer</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(user.createdAt).toLocaleDateString("tr-TR")}
+                            </TableCell>
+                            <TableCell>
+                              {user.id !==
+                                (session?.user as { id?: string })?.id && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteUserMutation.mutate(user.id)}
+                                  className="h-7 text-xs text-danger hover:text-danger"
+                                >
+                                  Sil
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ),
+                      )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Cron Settings */}
+          <Card className="border-border bg-card animate-in fade-in duration-200">
+            <CardHeader>
+              <CardTitle className="text-base">Cron Ayarları</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Strateji Kontrol Sıklığı
+                </Label>
                 <Select
-                  value={newUser.role}
+                  value={cronForm.cronExpression}
                   onValueChange={(v) =>
-                    setNewUser({ ...newUser, role: v ?? "VIEWER" })
+                    setCronForm({ ...cronForm, cronExpression: v ?? "*/5 * * * *" })
                   }
                 >
-                  <SelectTrigger className="border-border bg-background">
+                  <SelectTrigger className="w-[200px] border-border bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                    <SelectItem value="*/1 * * * *">Her 1 dakika</SelectItem>
+                    <SelectItem value="*/5 * * * *">Her 5 dakika</SelectItem>
+                    <SelectItem value="*/15 * * * *">Her 15 dakika</SelectItem>
+                    <SelectItem value="*/30 * * * *">Her 30 dakika</SelectItem>
+                    <SelectItem value="0 * * * *">Her saat</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button
-                  type="submit"
-                  disabled={addUserMutation.isPending}
-                  className="w-full bg-foreground text-background hover:bg-foreground/90"
-                >
-                  Ekle
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-xs">Ad</TableHead>
-                <TableHead className="text-xs">E-posta</TableHead>
-                <TableHead className="text-xs">Rol</TableHead>
-                <TableHead className="text-xs">Tarih</TableHead>
-                <TableHead className="text-xs"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {usersLoading
-                ? Array.from({ length: 2 }).map((_, i) => (
-                    <TableRow key={i} className="border-border">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-20" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : users.map(
-                    (user: {
-                      id: string;
-                      name: string | null;
-                      email: string;
-                      role: string;
-                      createdAt: string;
-                    }) => (
-                      <TableRow key={user.id} className="border-border">
-                        <TableCell className="text-sm">
-                          {user.name || "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {user.email}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={user.role}
-                            onValueChange={(v) =>
-                              changeRoleMutation.mutate({
-                                id: user.id,
-                                role: v ?? "VIEWER",
-                              })
-                            }
-                          >
-                            <SelectTrigger className="h-7 w-[100px] border-border bg-background text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="ADMIN">Admin</SelectItem>
-                              <SelectItem value="VIEWER">Viewer</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {new Date(user.createdAt).toLocaleDateString("tr-TR")}
-                        </TableCell>
-                        <TableCell>
-                          {user.id !==
-                            (session?.user as { id?: string })?.id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteUserMutation.mutate(user.id)}
-                              className="h-7 text-xs text-danger hover:text-danger"
-                            >
-                              Sil
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ),
-                  )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Cron Settings */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="text-base">Cron Ayarları</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Strateji Kontrol Sıklığı
-            </Label>
-            <Select
-              value={cronForm.cronExpression}
-              onValueChange={(v) =>
-                setCronForm({ ...cronForm, cronExpression: v ?? "*/5 * * * *" })
-              }
-            >
-              <SelectTrigger className="w-[200px] border-border bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="*/1 * * * *">Her 1 dakika</SelectItem>
-                <SelectItem value="*/5 * * * *">Her 5 dakika</SelectItem>
-                <SelectItem value="*/15 * * * *">Her 15 dakika</SelectItem>
-                <SelectItem value="*/30 * * * *">Her 30 dakika</SelectItem>
-                <SelectItem value="0 * * * *">Her saat</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center justify-between">
-            <Label className="text-sm text-muted-foreground">
-              Piyasa saatleri dışında çalıştır
-            </Label>
-            <Switch
-              checked={cronForm.tradeOutsideHours}
-              onCheckedChange={(v) =>
-                setCronForm({ ...cronForm, tradeOutsideHours: v })
-              }
-            />
-          </div>
-          <Button
-            onClick={() => saveCronMutation.mutate(cronForm)}
-            disabled={saveCronMutation.isPending}
-            className="bg-foreground text-background hover:bg-foreground/90"
-          >
-            Kaydet
-          </Button>
-        </CardContent>
-      </Card>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">
+                  Piyasa saatleri dışında çalıştır
+                </Label>
+                <Switch
+                  checked={cronForm.tradeOutsideHours}
+                  onCheckedChange={(v) =>
+                    setCronForm({ ...cronForm, tradeOutsideHours: v })
+                  }
+                />
+              </div>
+              <Button
+                onClick={() => saveCronMutation.mutate(cronForm)}
+                disabled={saveCronMutation.isPending}
+                className="bg-foreground text-background hover:bg-foreground/90"
+              >
+                Kaydet
+              </Button>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

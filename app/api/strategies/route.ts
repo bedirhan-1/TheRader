@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, stockId, type, params, action, qty, enabled } = body;
+    const { name, stockId, type, params, action, orderType, qty, enabled } = body;
 
     if (!name || !stockId || !type || !action || !qty) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         type,
         params: params || {},
         action,
+        orderType: orderType || "MARKET",
         qty: parseFloat(String(qty)),
         enabled: enabled ?? true,
       },
