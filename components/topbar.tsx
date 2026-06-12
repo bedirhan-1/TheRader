@@ -52,13 +52,13 @@ export function Topbar() {
   });
 
   return (
-    <header className="sticky top-0 z-35 flex h-14 items-center justify-between border-b border-border bg-zinc-950/70 backdrop-blur-md px-6">
+    <header className="sticky top-0 z-35 flex h-14 items-center justify-between border-b border-border bg-background/70 backdrop-blur-md px-6">
       <div className="flex items-center gap-1">{breadcrumbs}</div>
 
       <div className="flex items-center gap-3">
         {session?.user && (
-          <div className="flex items-center gap-2.5 rounded-full border border-border bg-zinc-900/40 hover:bg-zinc-900/80 transition-all p-1 pr-3.5 pl-1.5 cursor-default select-none">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-zinc-700 via-zinc-800 to-zinc-900 text-[10px] font-bold text-white border border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center gap-2.5 rounded-full border border-border bg-card hover:bg-accent transition-all p-1 pr-3.5 pl-1.5 cursor-default select-none">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-tr from-zinc-700 via-zinc-800 to-zinc-900 text-[10px] font-bold text-white border border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
               {(session.user.name ||
                 session.user.email ||
                 "U")[0].toUpperCase()}

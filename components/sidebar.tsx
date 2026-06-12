@@ -6,8 +6,24 @@ import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { useUiStore } from "@/lib/store";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-const navItems: { label: string; href: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
+const navItems: {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  adminOnly?: boolean;
+}[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
@@ -169,12 +185,64 @@ export function Sidebar() {
   const { data: session } = useSession();
   const marketOpen = isMarketOpen();
   const userRole = (session?.user as { role?: string })?.role;
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const { sidebarCollapsed, toggleSidebar } = useUiStore();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[240px] flex-col border-r border-border bg-card">
-      {/* Logo */}
-      <div className="flex h-14 items-center px-5 border-b border-border bg-[url('/logo-small.png')] bg-[length:18px_auto] bg-[position:16px_center] bg-no-repeat pl-11">
-        <span className="text-sm font-semibold tracking-tight">The Rader</span>
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border bg-card transition-all duration-300",
+        sidebarCollapsed ? "w-[70px]" : "w-[240px]",
+      )}
+    >
+      {/* Logo & Toggle */}
+      <div
+        className={cn(
+          "flex h-14 items-center border-b border-border transition-all duration-300 relative",
+          sidebarCollapsed ? "justify-center" : "bg-[url('/logo-small.png')] bg-size-[18px_auto] bg-position-[16px_center] bg-no-repeat pl-11 pr-3",
+        )}
+      >
+        {sidebarCollapsed ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            title="Genişlet"
+          >
+            <img src="/logo-small.png" alt="Logo" className="h-5 w-5" />
+          </Button>
+        ) : (
+          <>
+            <span className="text-sm font-semibold tracking-tight">The Rader</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebar}
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground ml-auto"
+              title="Daralt"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Nav */}
@@ -189,8 +257,10 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={sidebarCollapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  "flex items-center rounded-md px-3 py-2 text-sm transition-colors",
+                  sidebarCollapsed ? "justify-center" : "gap-3",
                   isActive
                     ? "bg-accent text-foreground"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
@@ -203,75 +273,161 @@ export function Sidebar() {
                 >
                   {item.icon}
                 </span>
-                {item.label}
+                {!sidebarCollapsed && (
+                  <span className="animate-in fade-in duration-200">{item.label}</span>
+                )}
               </Link>
             );
           })}
       </nav>
 
       {/* Bottom section */}
-      <div className="mt-auto space-y-3 px-3 pb-4">
+      <div className={cn("mt-auto space-y-3 pb-4", sidebarCollapsed ? "px-2" : "px-3")}>
         <Separator />
 
         {/* Market status */}
-        <div className="flex items-center gap-2 px-3 py-1">
+        <div
+          className={cn("flex items-center gap-2 py-1", sidebarCollapsed ? "justify-center" : "px-3")}
+          title={sidebarCollapsed ? `Piyasa ${marketOpen ? "Açık" : "Kapalı"}` : undefined}
+        >
           <div
             className={cn(
               "h-2 w-2 rounded-full",
               marketOpen ? "bg-success" : "bg-muted-foreground",
             )}
           />
-          <span className="text-xs text-muted-foreground">
-            Piyasa {marketOpen ? "Açık" : "Kapalı"}
-          </span>
+          {!sidebarCollapsed && (
+            <span className="text-xs text-muted-foreground animate-in fade-in duration-200">
+              Piyasa {marketOpen ? "Açık" : "Kapalı"}
+            </span>
+          )}
         </div>
 
         {/* User */}
-        <div className="flex items-center justify-between px-3 py-1">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-800 text-[10px] font-bold text-white border border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+        <div className={cn("flex items-center justify-between py-1", sidebarCollapsed ? "flex-col gap-3 px-0" : "px-3")}>
+          <div className={cn("flex items-center", sidebarCollapsed ? "flex-col gap-1" : "gap-2")}>
+            <div
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-tr from-zinc-700 to-zinc-800 text-[10px] font-bold text-white border border-white/10 shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+              title={sidebarCollapsed ? (session?.user?.name || session?.user?.email || "U") : undefined}
+            >
               {(session?.user?.name ||
                 session?.user?.email ||
                 "U")[0].toUpperCase()}
             </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-semibold leading-none text-foreground max-w-[120px] truncate">
-                {session?.user?.name ||
-                  session?.user?.email?.split("@")[0] ||
-                  "Kullanıcı"}
-              </span>
-              <span className="text-[9px] font-semibold leading-none text-zinc-500 mt-1 uppercase tracking-wider">
-                {userRole === "ADMIN" ? "Yönetici" : "Gözlemci"}
-              </span>
-            </div>
+            {!sidebarCollapsed && (
+              <div className="flex flex-col text-left animate-in fade-in duration-200">
+                <span className="text-xs font-semibold leading-none text-foreground max-w-[120px] truncate">
+                  {session?.user?.name ||
+                    session?.user?.email?.split("@")[0] ||
+                    "Kullanıcı"}
+                </span>
+                <span className="text-[9px] font-semibold leading-none text-zinc-500 mt-1 uppercase tracking-wider">
+                  {userRole === "ADMIN" ? "Yönetici" : "Gözlemci"}
+                </span>
+              </div>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (window.confirm("Çıkış yapmak istediğinize emin misiniz?")) {
-                signOut({ callbackUrl: "/login" });
-              }
-            }}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className={cn("flex items-center gap-1", sidebarCollapsed ? "flex-col" : "")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              title="Temayı Değiştir"
             >
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </Button>
+              {mounted && theme === "dark" ? (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+              ) : (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLogoutOpen(true)}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              title="Çıkış Yap"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </Button>
+          </div>
         </div>
       </div>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent showCloseButton={false} className="max-w-xs p-6 bg-card border border-border">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-base font-bold text-foreground">Çıkış Yap</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground leading-normal">
+              Hesabınızdan çıkış yapmak istediğinize emin misiniz?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLogoutOpen(false)}
+              className="px-3.5 py-1.5 text-xs font-semibold"
+            >
+              İptal
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setLogoutOpen(false);
+                signOut({ callbackUrl: "/login" });
+              }}
+              className="px-3.5 py-1.5 text-xs font-semibold bg-danger text-white hover:bg-danger/90"
+            >
+              Çıkış Yap
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

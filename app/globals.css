@@ -52,26 +52,26 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Vercel-inspired dark-only theme */
+/* Vercel-inspired light theme */
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #111111;
-  --card-foreground: #ededed;
-  --popover: #111111;
-  --popover-foreground: #ededed;
-  --primary: #ededed;
-  --primary-foreground: #0a0a0a;
-  --secondary: #1a1a1a;
-  --secondary-foreground: #ededed;
-  --muted: #1a1a1a;
-  --muted-foreground: #888888;
-  --accent: #1a1a1a;
-  --accent-foreground: #ededed;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #0a0a0a;
   --destructive: #e5484d;
-  --border: #2a2a2a;
-  --input: #1a1a1a;
-  --ring: #555555;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
   --success: #00c950;
   --warning: #f5a623;
   --danger: #e5484d;
@@ -82,17 +82,17 @@
   --chart-4: #e5484d;
   --chart-5: #7c66dc;
   --radius: 0.5rem;
-  --sidebar: #111111;
-  --sidebar-foreground: #ededed;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
   --sidebar-primary: #0070f3;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #ededed;
-  --sidebar-border: #2a2a2a;
-  --sidebar-ring: #555555;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #a1a1aa;
 }
 
-/* Also apply dark class variant for shadcn compatibility */
+/* Vercel-inspired dark theme */
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;

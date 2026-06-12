@@ -74,12 +74,18 @@ export default function StockDetailPage({
   });
 
   const { data: barsData, isLoading: barsLoading } = useQuery({
-    queryKey: ["bars", symbol, selectedTf, selectedTf === "custom" ? customDays : null],
+    queryKey: [
+      "bars",
+      symbol,
+      selectedTf,
+      selectedTf === "custom" ? customDays : null,
+    ],
     queryFn: () => {
       const days = selectedTf === "custom" ? customDays : tf.days;
-      const timeframeVal = selectedTf === "custom" ? (customDays <= 7 ? "1Hour" : "1Day") : tf.tf;
+      const timeframeVal =
+        selectedTf === "custom" ? (customDays <= 7 ? "1Hour" : "1Day") : tf.tf;
       return fetch(
-        `/api/stocks/${symbol}/bars?timeframe=${timeframeVal}&days=${days}`
+        `/api/stocks/${symbol}/bars?timeframe=${timeframeVal}&days=${days}`,
       ).then((r) => r.json());
     },
   });
@@ -88,11 +94,18 @@ export default function StockDetailPage({
     queryKey: ["stockOrders", symbol],
     queryFn: () =>
       fetch(`/api/orders?symbol=${symbol}&limit=20`).then((r) => r.json()),
+    refetchInterval: (query) => {
+      const ordersList = query?.state?.data?.data ?? [];
+      const hasPending = ordersList.some((o: any) => o.status === "PENDING");
+      return hasPending ? 2000 : 30000;
+    },
   });
 
   const queryClient = useQueryClient();
   const [tradeSide, setTradeSide] = useState<"BUY" | "SELL">("BUY");
-  const [tradeType, setTradeType] = useState<"MARKET" | "LIMIT" | "STOP">("MARKET");
+  const [tradeType, setTradeType] = useState<"MARKET" | "LIMIT" | "STOP">(
+    "MARKET",
+  );
   const [tradeQty, setTradeQty] = useState("");
   const [limitPrice, setLimitPrice] = useState("");
 
@@ -107,7 +120,9 @@ export default function StockDetailPage({
           qty: parseFloat(tradeQty),
           type: tradeType.toLowerCase(),
           time_in_force: "day",
-          ...(tradeType !== "MARKET" && limitPrice ? { limit_price: parseFloat(limitPrice) } : {}),
+          ...(tradeType !== "MARKET" && limitPrice
+            ? { limit_price: parseFloat(limitPrice) }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -138,7 +153,14 @@ export default function StockDetailPage({
 
   const bars = barsData?.data ?? [];
   const chartData = bars.map(
-    (bar: { t: string; o: number; h: number; l: number; c: number; v: number }) => ({
+    (bar: {
+      t: string;
+      o: number;
+      h: number;
+      l: number;
+      c: number;
+      v: number;
+    }) => ({
       date: new Date(bar.t).toLocaleDateString("tr-TR", {
         day: "2-digit",
         month: "short",
@@ -147,7 +169,7 @@ export default function StockDetailPage({
       volume: bar.v,
       high: bar.h,
       low: bar.l,
-    })
+    }),
   );
 
   const strategies = stock?.strategies ?? [];
@@ -186,7 +208,7 @@ export default function StockDetailPage({
                     "font-mono",
                     change >= 0
                       ? "border-success/20 bg-success/10 text-success"
-                      : "border-danger/20 bg-danger/10 text-danger"
+                      : "border-danger/20 bg-danger/10 text-danger",
                   )}
                 >
                   {change >= 0 ? "+" : ""}
@@ -199,7 +221,7 @@ export default function StockDetailPage({
         {!stockLoading && (
           <Button
             onClick={() => router.push(`/strategies/new?symbol=${symbol}`)}
-            className="flex items-center gap-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:via-indigo-500 hover:to-blue-500 text-white font-medium border-0 transition-all duration-300 shadow-[0_0_15px_rgba(124,58,237,0.25)] hover:shadow-[0_0_25px_rgba(124,58,237,0.55)] hover:-translate-y-0.5 active:translate-y-0 h-9 px-4 rounded-md"
+            className="flex items-center gap-2 bg-linear-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:via-indigo-500 hover:to-blue-500 text-white font-medium border-0 transition-all duration-300 shadow-[0_0_15px_rgba(124,58,237,0.25)] hover:shadow-[0_0_25px_rgba(124,58,237,0.55)] hover:-translate-y-0.5 active:translate-y-0 h-9 px-4 rounded-md"
           >
             <Plus className="h-4 w-4 stroke-[2.5]" />
             <span>Strateji Oluştur</span>
@@ -228,7 +250,7 @@ export default function StockDetailPage({
                         "h-7 px-2 text-xs",
                         selectedTf === t.value
                           ? "bg-accent text-foreground"
-                          : "text-muted-foreground"
+                          : "text-muted-foreground",
                       )}
                     >
                       {t.label}
@@ -242,7 +264,7 @@ export default function StockDetailPage({
                       "h-7 px-2 text-xs",
                       selectedTf === "custom"
                         ? "bg-accent text-foreground"
-                        : "text-muted-foreground"
+                        : "text-muted-foreground",
                     )}
                   >
                     Özel
@@ -357,7 +379,12 @@ export default function StockDetailPage({
                     </TableHeader>
                     <TableBody>
                       {strategies.map(
-                        (s: { id: string; name: string; type: string; enabled: boolean }) => (
+                        (s: {
+                          id: string;
+                          name: string;
+                          type: string;
+                          enabled: boolean;
+                        }) => (
                           <TableRow key={s.id} className="border-border">
                             <TableCell className="text-sm">{s.name}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">
@@ -376,7 +403,7 @@ export default function StockDetailPage({
                               </Badge>
                             </TableCell>
                           </TableRow>
-                        )
+                        ),
                       )}
                     </TableBody>
                   </Table>
@@ -417,21 +444,31 @@ export default function StockDetailPage({
                         }) => (
                           <TableRow key={o.id} className="border-border">
                             <TableCell>
-                              <Badge variant="outline" className={sideColors[o.side]}>
+                              <Badge
+                                variant="outline"
+                                className={sideColors[o.side]}
+                              >
                                 {o.side}
                               </Badge>
                             </TableCell>
-                            <TableCell className="font-mono text-xs">{o.qty}</TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {o.qty}
+                            </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={statusColors[o.status]}>
+                              <Badge
+                                variant="outline"
+                                className={statusColors[o.status]}
+                              >
                                 {o.status}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                              {new Date(o.createdAt).toLocaleDateString("tr-TR")}
+                              {new Date(o.createdAt).toLocaleDateString(
+                                "tr-TR",
+                              )}
                             </TableCell>
                           </TableRow>
-                        )
+                        ),
                       )}
                     </TableBody>
                   </Table>
@@ -453,7 +490,7 @@ export default function StockDetailPage({
                     "flex-1 py-1.5 rounded-md text-xs font-bold transition-all text-center",
                     tradeSide === "BUY"
                       ? "bg-success text-success-foreground shadow animate-in fade-in"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Hisse Al (BUY)
@@ -465,7 +502,7 @@ export default function StockDetailPage({
                     "flex-1 py-1.5 rounded-md text-xs font-bold transition-all text-center",
                     tradeSide === "SELL"
                       ? "bg-danger text-danger-foreground shadow animate-in fade-in"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   Hisse Sat (SELL)
@@ -475,7 +512,9 @@ export default function StockDetailPage({
             <CardContent className="p-4 space-y-4">
               {/* Order Type */}
               <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-semibold text-muted-foreground">Emir Tipi</Label>
+                <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
+                  Emir Tipi
+                </Label>
                 <Select
                   value={tradeType}
                   onValueChange={(v: any) => setTradeType(v || "MARKET")}
@@ -485,8 +524,12 @@ export default function StockDetailPage({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MARKET">Piyasa Emri (Market)</SelectItem>
-                    <SelectItem value="LIMIT">Limit Emir (Fiyat Belirle)</SelectItem>
-                    <SelectItem value="STOP">Stop Emir (Tetiklemeli)</SelectItem>
+                    <SelectItem value="LIMIT">
+                      Limit Emir (Fiyat Belirle)
+                    </SelectItem>
+                    <SelectItem value="STOP">
+                      Stop Emir (Tetiklemeli)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -494,7 +537,9 @@ export default function StockDetailPage({
               {/* Limit Price (only for non-market) */}
               {tradeType !== "MARKET" && (
                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground">İstenen Fiyat ($)</Label>
+                  <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
+                    İstenen Fiyat ($)
+                  </Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -509,7 +554,9 @@ export default function StockDetailPage({
 
               {/* Quantity */}
               <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-semibold text-muted-foreground">Adet (Miktar)</Label>
+                <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
+                  Adet (Miktar)
+                </Label>
                 <Input
                   type="number"
                   step="any"
@@ -531,8 +578,15 @@ export default function StockDetailPage({
                 </div>
                 <div className="flex justify-between items-center border-t border-border/30 pt-2 text-sm font-semibold">
                   <span>Tahmini Tutar:</span>
-                  <span className={cn("font-mono", tradeSide === "BUY" ? "text-success" : "text-danger")}>
-                    {price && tradeQty ? `$${(price * parseFloat(tradeQty) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$0.00"}
+                  <span
+                    className={cn(
+                      "font-mono",
+                      tradeSide === "BUY" ? "text-success" : "text-danger",
+                    )}
+                  >
+                    {price && tradeQty
+                      ? `$${(price * parseFloat(tradeQty) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : "$0.00"}
                   </span>
                 </div>
               </div>
@@ -540,20 +594,22 @@ export default function StockDetailPage({
               {/* Action Button */}
               <Button
                 type="button"
-                disabled={tradeMutation.isPending || !tradeQty || parseFloat(tradeQty) <= 0}
+                disabled={
+                  tradeMutation.isPending ||
+                  !tradeQty ||
+                  parseFloat(tradeQty) <= 0
+                }
                 onClick={() => tradeMutation.mutate()}
                 className={cn(
                   "w-full h-10 font-bold text-xs tracking-wide transition-all shadow-md active:scale-95 duration-100",
                   tradeSide === "BUY"
                     ? "bg-success text-success-foreground hover:bg-success/90"
-                    : "bg-danger text-danger-foreground hover:bg-danger/90"
+                    : "bg-danger text-danger-foreground hover:bg-danger/90",
                 )}
               >
-                {tradeMutation.isPending ? (
-                  "Emir İletiliyor..."
-                ) : (
-                  `${symbol} ${tradeSide === "BUY" ? "AL" : "SAT"}`
-                )}
+                {tradeMutation.isPending
+                  ? "Emir İletiliyor..."
+                  : `${symbol} ${tradeSide === "BUY" ? "AL" : "SAT"}`}
               </Button>
             </CardContent>
           </Card>

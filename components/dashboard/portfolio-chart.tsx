@@ -25,9 +25,7 @@ export function PortfolioChart({ currentEquity }: PortfolioChartProps) {
   });
 
   const history = data?.data;
-  const firstNonZeroEquity =
-    history?.equity?.find((val: number) => val > 0) ?? 0;
-  const chartData =
+  const chartData: { date: string; equity: number }[] =
     history?.timestamp?.map((ts: number, i: number) => {
       const eq = history.equity[i];
       return {
@@ -35,8 +33,7 @@ export function PortfolioChart({ currentEquity }: PortfolioChartProps) {
           day: "2-digit",
           month: "short",
         }),
-        equity:
-          eq === 0 || eq === null || eq === undefined ? firstNonZeroEquity : eq,
+        equity: eq === null || eq === undefined ? 0 : eq,
       };
     }) ?? [];
 
@@ -60,6 +57,23 @@ export function PortfolioChart({ currentEquity }: PortfolioChartProps) {
       });
     }
   }
+
+  // Dynamic Y-Axis scale to show trends even for small balance changes
+  const equities = chartData.map((d) => d.equity);
+  const minEquity = equities.length > 0 ? Math.min(...equities) : 100000;
+  const maxEquity = equities.length > 0 ? Math.max(...equities) : 100000;
+  const range = maxEquity - minEquity;
+
+  let yDomain: [number, number] = [90000, 110000];
+  if (minEquity === maxEquity) {
+    const margin = minEquity * 0.05 || 100; // 5% margin
+    yDomain = [minEquity - margin, maxEquity + margin];
+  } else {
+    const padding = range * 0.15; // 15% padding
+    yDomain = [Math.max(0, minEquity - padding), maxEquity + padding];
+  }
+
+  const decimals = range < 100 ? 2 : 0;
 
   return (
     <Card className="border-border bg-card">
@@ -96,10 +110,13 @@ export function PortfolioChart({ currentEquity }: PortfolioChartProps) {
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) =>
-                  `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
+                  `$${v.toLocaleString("en-US", {
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals,
+                  })}`
                 }
-                width={65}
-                domain={[0, "auto"]}
+                width={75}
+                domain={yDomain}
               />
               <Tooltip
                 contentStyle={{

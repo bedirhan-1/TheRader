@@ -77,6 +77,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Determine initial status based on Alpaca response
+    let initialStatus: "PENDING" | "FILLED" | "CANCELLED" | "REJECTED" = "PENDING";
+    let filledAt: Date | null = null;
+
+    if (alpacaOrder.status === "filled") {
+      initialStatus = "FILLED";
+      filledAt = alpacaOrder.filled_at ? new Date(alpacaOrder.filled_at) : new Date();
+    } else if (
+      alpacaOrder.status === "canceled" ||
+      alpacaOrder.status === "expired" ||
+      alpacaOrder.status === "done_for_day"
+    ) {
+      initialStatus = "CANCELLED";
+    } else if (alpacaOrder.status === "rejected") {
+      initialStatus = "REJECTED";
+    }
+
     // Save to DB
     const order = await prisma.order.create({
       data: {
@@ -87,7 +104,8 @@ export async function POST(request: NextRequest) {
         qty: parseFloat(String(qty)),
         type: type.toUpperCase() as "MARKET" | "LIMIT" | "STOP",
         limitPrice: limit_price ? parseFloat(String(limit_price)) : null,
-        status: "PENDING",
+        status: initialStatus,
+        filledAt,
       },
       include: { stock: true },
     });

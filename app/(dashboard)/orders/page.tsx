@@ -75,6 +75,11 @@ export default function OrdersPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["orders", queryString],
     queryFn: () => fetch(`/api/orders?${queryString}`).then((r) => r.json()),
+    refetchInterval: (query) => {
+      const ordersList = query?.state?.data?.data ?? [];
+      const hasPendingOrders = ordersList.some((o: any) => o.status === "PENDING");
+      return hasPendingOrders ? 2000 : 30000;
+    },
   });
 
   const placeMutation = useMutation({

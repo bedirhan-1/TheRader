@@ -1,19 +1,30 @@
+"use client";
+
 import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { useUiStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { sidebarCollapsed } = useUiStore();
+
   return (
     <Providers>
       <div className="flex min-h-screen">
         <Sidebar />
-        <div className="flex flex-1 flex-col pl-[240px]">
+        <div
+          className={cn(
+            "flex flex-1 flex-col transition-all duration-300",
+            sidebarCollapsed ? "pl-[70px]" : "pl-[240px]",
+          )}
+        >
           <Topbar />
-          <main className="flex-1 p-6">{children}</main>
+          <main className="container mx-auto p-6">{children}</main>
         </div>
       </div>
     </Providers>
