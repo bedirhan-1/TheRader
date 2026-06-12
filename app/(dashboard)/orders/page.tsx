@@ -114,11 +114,12 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
+      {/* Actions Header */}
+      <div className="flex justify-end">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger
             render={
-              <Button className="bg-foreground text-background hover:bg-foreground/90">
+              <Button className="bg-foreground text-background hover:bg-foreground/90 w-full sm:w-auto">
                 Manuel Emir
               </Button>
             }
@@ -207,7 +208,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Select
           value={filters.status}
           onValueChange={(v) =>
@@ -249,8 +250,8 @@ export default function OrdersPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border border-border">
-        <Table>
+      <div className="rounded-md border border-border w-full overflow-x-auto">
+        <Table className="whitespace-nowrap">
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
               <TableHead className="text-xs">Sembol</TableHead>

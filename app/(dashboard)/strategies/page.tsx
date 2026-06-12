@@ -134,120 +134,140 @@ export default function StrategiesPage() {
 
   const strategies = strategiesData?.data ?? [];
 
-  if (!isLoading && strategies.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-border/80 rounded-2xl bg-zinc-950/20 max-w-md mx-auto my-16 space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div className="h-12 w-12 rounded-full bg-zinc-900 border border-border flex items-center justify-center text-muted-foreground shadow-sm">
-          <Bot className="h-6 w-6 text-foreground" />
-        </div>
-        <div className="space-y-1.5">
-          <h2 className="text-sm font-bold text-zinc-100">Henüz Bir Stratejiniz Yok</h2>
-          <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-            Hisse senetleriniz için 7/24 çalışan otomatik alım-satım kuralları belirleyin. RSI, Bollinger Bantları veya kendi özel koşullarınızı bağlayarak ilk stratejinizi şimdi oluşturun.
-          </p>
-        </div>
-        <Link href="/strategies/new">
-          <Button className="bg-foreground text-background hover:bg-foreground/90 font-semibold text-xs px-5 h-9">
-            İlk Stratejini Oluştur →
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <Link href="/strategies/new">
-          <Button className="bg-foreground text-background hover:bg-foreground/90 font-medium">
+      {/* Actions Header */}
+      <div className="flex justify-end">
+        <Link href="/strategies/new" className="w-full sm:w-auto">
+          <Button className="bg-foreground text-background hover:bg-foreground/90 font-medium w-full sm:w-auto">
             Yeni Strateji
           </Button>
         </Link>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border border-border">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="text-xs">Ad</TableHead>
-              <TableHead className="text-xs">Hisse</TableHead>
-              <TableHead className="text-xs">Tür</TableHead>
-              <TableHead className="text-xs">Parametreler</TableHead>
-              <TableHead className="text-xs">Durum</TableHead>
-              <TableHead className="text-xs">Son Tetiklenme</TableHead>
-              <TableHead className="text-xs"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <TableRow key={i} className="border-border">
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : strategies.map(
-                  (s: {
-                    id: string;
-                    name: string;
-                    stock: { symbol: string };
-                    type: string;
-                    params: Record<string, unknown>;
-                    enabled: boolean;
-                    lastTriggered: string | null;
-                  }) => (
-                    <TableRow key={s.id} className="border-border">
-                      <TableCell className="text-sm font-medium">
-                        {s.name}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {s.stock?.symbol}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {s.type.replace("_", " ")}
-                      </TableCell>
-                      <TableCell
-                        className="text-xs text-muted-foreground max-w-[250px] truncate"
-                        title={renderParamsSummary(s.type, s.params)}
+      {isLoading ? (
+        <div className="rounded-md border border-border w-full overflow-x-auto">
+          <Table className="whitespace-nowrap">
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-xs">Ad</TableHead>
+                <TableHead className="text-xs">Hisse</TableHead>
+                <TableHead className="text-xs">Tür</TableHead>
+                <TableHead className="text-xs">Parametreler</TableHead>
+                <TableHead className="text-xs">Durum</TableHead>
+                <TableHead className="text-xs">Son Tetiklenme</TableHead>
+                <TableHead className="text-xs"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i} className="border-border">
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <TableCell key={j}>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : strategies.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-border/80 rounded-2xl bg-zinc-950/20 max-w-md mx-auto my-8 space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="h-12 w-12 rounded-full bg-zinc-900 border border-border flex items-center justify-center text-muted-foreground shadow-sm">
+            <Bot className="h-6 w-6 text-foreground" />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-sm font-bold text-zinc-100">
+              Henüz Bir Stratejiniz Yok
+            </h2>
+            <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+              Hisse senetleriniz için 7/24 çalışan otomatik alım-satım kuralları
+              belirleyin. RSI, Bollinger Bantları veya kendi özel koşullarınızı
+              bağlayarak ilk stratejinizi şimdi oluşturun.
+            </p>
+          </div>
+          <Link href="/strategies/new">
+            <Button className="bg-foreground text-background hover:bg-foreground/90 font-semibold text-xs px-5 h-9">
+              İlk Stratejini Oluştur →
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        /* Table */
+        <div className="rounded-md border border-border w-full overflow-x-auto">
+          <Table className="whitespace-nowrap">
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-xs">Ad</TableHead>
+                <TableHead className="text-xs">Hisse</TableHead>
+                <TableHead className="text-xs">Tür</TableHead>
+                <TableHead className="text-xs">Parametreler</TableHead>
+                <TableHead className="text-xs">Durum</TableHead>
+                <TableHead className="text-xs">Son Tetiklenme</TableHead>
+                <TableHead className="text-xs"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {strategies.map(
+                (s: {
+                  id: string;
+                  name: string;
+                  stock: { symbol: string };
+                  type: string;
+                  params: Record<string, unknown>;
+                  enabled: boolean;
+                  lastTriggered: string | null;
+                }) => (
+                  <TableRow key={s.id} className="border-border">
+                    <TableCell className="text-sm font-medium">
+                      {s.name}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {s.stock?.symbol}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {s.type.replace("_", " ")}
+                    </TableCell>
+                    <TableCell
+                      className="text-xs text-muted-foreground max-w-[250px] truncate"
+                      title={renderParamsSummary(s.type, s.params)}
+                    >
+                      {renderParamsSummary(s.type, s.params)}
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={s.enabled}
+                        onCheckedChange={(checked) =>
+                          toggleMutation.mutate({
+                            id: s.id,
+                            enabled: checked,
+                          })
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {s.lastTriggered
+                        ? new Date(s.lastTriggered).toLocaleString("tr-TR")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(s.id)}
+                        className="h-7 text-xs text-danger hover:text-danger"
                       >
-                        {renderParamsSummary(s.type, s.params)}
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={s.enabled}
-                          onCheckedChange={(checked) =>
-                            toggleMutation.mutate({
-                              id: s.id,
-                              enabled: checked,
-                            })
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {s.lastTriggered
-                          ? new Date(s.lastTriggered).toLocaleString("tr-TR")
-                          : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteMutation.mutate(s.id)}
-                          className="h-7 text-xs text-danger hover:text-danger"
-                        >
-                          Sil
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ),
-                )}
-          </TableBody>
-        </Table>
-      </div>
+                        Sil
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

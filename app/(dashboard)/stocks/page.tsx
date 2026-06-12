@@ -169,8 +169,8 @@ export default function StocksPage() {
 
       {/* Watchlist Tab */}
       {activeTab === "watchlist" && (
-        <div className="rounded-md border border-border bg-card/25 animate-in fade-in duration-200">
-          <Table>
+        <div className="rounded-md border border-border bg-card/25 animate-in fade-in duration-200 w-full overflow-x-auto">
+          <Table className="whitespace-nowrap">
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-xs">Sembol</TableHead>
@@ -337,8 +337,8 @@ export default function StocksPage() {
           </div>
 
           {/* Results Table */}
-          <div className="rounded-md border border-border bg-card/25">
-            <Table>
+          <div className="rounded-md border border-border bg-card/25 w-full overflow-x-auto">
+            <Table className="whitespace-nowrap">
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-xs">Sembol</TableHead>

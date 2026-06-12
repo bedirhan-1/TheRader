@@ -178,12 +178,12 @@ export default function StockDetailPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           {stockLoading ? (
             <Skeleton className="h-8 w-40" />
           ) : (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               <img
                 src={`https://images.financialmodelingprep.com/symbol/${symbol}.png`}
                 alt={symbol}
@@ -221,7 +221,7 @@ export default function StockDetailPage({
         {!stockLoading && (
           <Button
             onClick={() => router.push(`/strategies/new?symbol=${symbol}`)}
-            className="flex items-center gap-2 bg-linear-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:via-indigo-500 hover:to-blue-500 text-white font-medium border-0 transition-all duration-300 shadow-[0_0_15px_rgba(124,58,237,0.25)] hover:shadow-[0_0_25px_rgba(124,58,237,0.55)] hover:-translate-y-0.5 active:translate-y-0 h-9 px-4 rounded-md"
+            className="flex items-center justify-center gap-2 bg-linear-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-500 hover:via-indigo-500 hover:to-blue-500 text-white font-medium border-0 transition-all duration-300 shadow-[0_0_15px_rgba(124,58,237,0.25)] hover:shadow-[0_0_25px_rgba(124,58,237,0.55)] hover:-translate-y-0.5 active:translate-y-0 h-9 px-4 rounded-md w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 stroke-[2.5]" />
             <span>Strateji Oluştur</span>
@@ -234,11 +234,11 @@ export default function StockDetailPage({
         <div className="lg:col-span-2 space-y-6">
           {/* Chart */}
           <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Fiyat Grafiği
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <div className="flex gap-1 bg-zinc-900/60 p-0.5 rounded-md border border-border">
                   {timeframes.map((t) => (
                     <Button
@@ -369,7 +369,8 @@ export default function StockDetailPage({
                     Bu hisseye ait strateji yok.
                   </div>
                 ) : (
-                  <Table>
+                  <div className="w-full overflow-x-auto">
+                    <Table className="whitespace-nowrap">
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="text-xs">Ad</TableHead>
@@ -407,6 +408,7 @@ export default function StockDetailPage({
                       )}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -424,7 +426,8 @@ export default function StockDetailPage({
                     Henüz emir yok.
                   </div>
                 ) : (
-                  <Table>
+                  <div className="w-full overflow-x-auto">
+                    <Table className="whitespace-nowrap">
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
                         <TableHead className="text-xs">Yön</TableHead>
@@ -472,6 +475,7 @@ export default function StockDetailPage({
                       )}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>

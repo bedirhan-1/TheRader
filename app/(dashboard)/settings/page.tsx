@@ -275,7 +275,7 @@ export default function SettingsPage() {
   const users = usersData?.data ?? [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Profile Info Card (Visible to all users) */}
       <Card className="border-border bg-card">
         <CardHeader>
@@ -425,7 +425,7 @@ export default function SettingsPage() {
 
           <Separator />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">
                 {alpacaForm.alpacaMode === "paper" ? "Paper" : "Live"} API Key
@@ -586,7 +586,8 @@ export default function SettingsPage() {
               </Dialog>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="whitespace-nowrap">
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-xs">Ad</TableHead>
@@ -662,6 +663,7 @@ export default function SettingsPage() {
                       )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
 

@@ -495,12 +495,12 @@ function NewStrategyForm() {
         </div>
 
         {/* Modern Stepper in the Header */}
-        <div className="flex items-center gap-3 text-xs font-medium bg-zinc-900/40 border border-border/50 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium bg-zinc-900/40 border border-border/50 rounded-lg px-2 py-1 sm:px-3 sm:py-1.5 backdrop-blur-sm">
           {/* Step 1 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div
               className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300",
+                "h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold border transition-all duration-300",
                 step === 1
                   ? "bg-violet-600 border-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.35)]"
                   : step > 1
@@ -508,11 +508,11 @@ function NewStrategyForm() {
                     : "bg-transparent border-zinc-800 text-zinc-600",
               )}
             >
-              {step > 1 ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : "1"}
+              {step > 1 ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" /> : "1"}
             </div>
             <span
               className={cn(
-                "transition-colors duration-300",
+                "hidden sm:inline transition-colors duration-300",
                 step === 1
                   ? "text-foreground font-semibold"
                   : "text-muted-foreground",
@@ -521,14 +521,14 @@ function NewStrategyForm() {
               Hisse
             </span>
           </div>
-
-          <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
-
+ 
+          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/30" />
+ 
           {/* Step 2 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div
               className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300",
+                "h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold border transition-all duration-300",
                 step === 2
                   ? "bg-violet-600 border-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.35)]"
                   : step > 2
@@ -536,11 +536,11 @@ function NewStrategyForm() {
                     : "bg-transparent border-zinc-800 text-zinc-600",
               )}
             >
-              {step > 2 ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : "2"}
+              {step > 2 ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" /> : "2"}
             </div>
             <span
               className={cn(
-                "transition-colors duration-300",
+                "hidden sm:inline transition-colors duration-300",
                 step === 2
                   ? "text-foreground font-semibold"
                   : "text-muted-foreground",
@@ -549,14 +549,14 @@ function NewStrategyForm() {
               Algoritma
             </span>
           </div>
-
-          <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
-
+ 
+          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/30" />
+ 
           {/* Step 3 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div
               className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300",
+                "h-6 w-6 sm:h-7 sm:w-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold border transition-all duration-300",
                 step === 3
                   ? "bg-violet-600 border-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.35)]"
                   : "bg-transparent border-zinc-800 text-zinc-600",
@@ -566,7 +566,7 @@ function NewStrategyForm() {
             </div>
             <span
               className={cn(
-                "transition-colors duration-300",
+                "hidden sm:inline transition-colors duration-300",
                 step === 3
                   ? "text-foreground font-semibold"
                   : "text-muted-foreground",

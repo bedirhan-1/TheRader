@@ -1,9 +1,13 @@
 "use client";
-
+ 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { cn } from "@/lib/utils";
+ 
 export default function AlgorithmsPage() {
+  const [expandedId, setExpandedId] = useState<string | null>("RSI");
+
   const algorithms = [
     {
       id: "RSI",
@@ -79,66 +83,82 @@ export default function AlgorithmsPage() {
       }
     }
   ];
-
+ 
   return (
-    <div className="space-y-8 w-full">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Algoritma Kütüphanesi</h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          The Rader üzerinde hisselerinize atayabileceğiniz teknik analiz algoritmalarının çalışma mantığı ve sinyal koşulları.
-        </p>
-      </div>
-
+    <div className="space-y-6 w-full">
       {/* Grid of Algorithms */}
       <div className="space-y-6">
         {algorithms.map((algo) => (
           <Card key={algo.id} className="border-border bg-card overflow-hidden">
-            <CardHeader className="border-b border-border bg-zinc-900/10 py-4 flex flex-row items-center justify-between">
+            <CardHeader
+              onClick={() => setExpandedId(expandedId === algo.id ? null : algo.id)}
+              className={cn(
+                "border-b border-border bg-zinc-900/10 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none hover:bg-zinc-900/15 transition-all duration-200",
+                expandedId === algo.id ? "bg-zinc-900/15" : ""
+              )}
+            >
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold">{algo.title}</CardTitle>
                 <p className="text-xs text-muted-foreground">{algo.description}</p>
               </div>
-              <Badge variant="outline" className="font-mono bg-zinc-900 text-xs">
-                {algo.id}
-              </Badge>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="font-mono bg-zinc-900 text-xs shrink-0">
+                  {algo.id}
+                </Badge>
+                <svg
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform duration-300 shrink-0",
+                    expandedId === algo.id ? "rotate-180" : ""
+                  )}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
             </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* Core Logic Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Genel Davranış</h4>
-                  <p className="text-xs text-zinc-300 leading-relaxed">{algo.logic.behavior}</p>
+            {expandedId === algo.id && (
+              <CardContent className="p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                {/* Core Logic Section */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Genel Davranış</h4>
+                    <p className="text-xs text-zinc-300 leading-relaxed">{algo.logic.behavior}</p>
+                  </div>
+                  <div className="space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-success flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success"></span> Alım Koşulu (BUY)
+                    </h4>
+                    <p className="text-xs text-zinc-300 leading-relaxed">{algo.logic.buy}</p>
+                  </div>
+                  <div className="space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-danger flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-danger"></span> Satım Koşulu (SELL)
+                    </h4>
+                    <p className="text-xs text-zinc-300 leading-relaxed">{algo.logic.sell}</p>
+                  </div>
                 </div>
-                <div className="space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-success flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-success"></span> Alım Koşulu (BUY)
-                  </h4>
-                  <p className="text-xs text-zinc-300 leading-relaxed">{algo.logic.buy}</p>
+ 
+                {/* Parameters Table */}
+                <div className="border border-border rounded-lg overflow-hidden bg-zinc-900/15">
+                  <div className="bg-zinc-900/30 px-4 py-2 border-b border-border">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Yapılandırma Parametreleri</span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {algo.parameters.map((param, i) => (
+                      <div key={i} className="flex flex-col sm:flex-row px-4 py-2.5 sm:items-center gap-1 sm:gap-4 text-xs">
+                        <span className="font-mono font-semibold text-zinc-300 sm:min-w-[120px]">{param.name}</span>
+                        <span className="text-muted-foreground">{param.desc}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-danger flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-danger"></span> Satım Koşulu (SELL)
-                  </h4>
-                  <p className="text-xs text-zinc-300 leading-relaxed">{algo.logic.sell}</p>
-                </div>
-              </div>
-
-              {/* Parameters Table */}
-              <div className="border border-border rounded-lg overflow-hidden bg-zinc-900/15">
-                <div className="bg-zinc-900/30 px-4 py-2 border-b border-border">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Yapılandırma Parametreleri</span>
-                </div>
-                <div className="divide-y divide-border">
-                  {algo.parameters.map((param, i) => (
-                    <div key={i} className="flex px-4 py-2.5 items-center gap-4 text-xs">
-                      <span className="font-mono font-semibold text-zinc-300 min-w-[120px]">{param.name}</span>
-                      <span className="text-muted-foreground">{param.desc}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         ))}
       </div>

@@ -60,7 +60,8 @@ export function RecentOrders() {
             Henüz emir yok.
           </div>
         ) : (
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="whitespace-nowrap">
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-xs">Sembol</TableHead>
@@ -115,6 +116,7 @@ export function RecentOrders() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </CardContent>
     </Card>

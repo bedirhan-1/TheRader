@@ -25,7 +25,7 @@ const navItems: {
   adminOnly?: boolean;
 }[] = [
   {
-    label: "Dashboard",
+    label: "Panel",
     href: "/dashboard",
     icon: (
       <svg
@@ -103,7 +103,7 @@ const navItems: {
     ),
   },
   {
-    label: "Algoritma Bilgisi",
+    label: "Algoritmalar",
     href: "/algorithms",
     icon: (
       <svg
@@ -188,19 +188,31 @@ export function Sidebar() {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const { sidebarCollapsed, toggleSidebar } = useUiStore();
+  const { sidebarCollapsed, toggleSidebar, mobileSidebarOpen, setMobileSidebarOpen } = useUiStore();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname, setMobileSidebarOpen]);
+
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border bg-card transition-all duration-300",
-        sidebarCollapsed ? "w-[70px]" : "w-[240px]",
+    <>
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-xs md:hidden animate-in fade-in duration-200"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
       )}
-    >
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border bg-card transition-all duration-300",
+          sidebarCollapsed ? "w-[70px]" : "w-[240px]",
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        )}
+      >
       {/* Logo & Toggle */}
       <div
         className={cn(
@@ -429,5 +441,6 @@ export function Sidebar() {
         </DialogContent>
       </Dialog>
     </aside>
+    </>
   );
 }
