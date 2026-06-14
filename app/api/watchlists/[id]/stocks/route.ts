@@ -34,12 +34,18 @@ export async function POST(
           { status: 400 }
         );
       }
-    } catch {
-      return NextResponse.json(
-        { error: "Geçersiz sembol veya Alpaca bağlantısı yok" },
-        { status: 400 }
-      );
+    } catch (error: any) {
+      console.warn("Alpaca validation skipped or failed:", error?.message || error);
+      // If Alpaca explicitly returned 404 (Not Found), it means the symbol is invalid
+      if (error && error.status === 404) {
+        return NextResponse.json(
+          { error: "Geçersiz hisse sembolü" },
+          { status: 400 }
+        );
+      }
+      // For any other error (unauthorized/401, network, no keys configured), we proceed and let the backend save it
     }
+
 
     const headers = await getBackendHeaders();
     const response = await backendApi.post(

@@ -58,7 +58,7 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
       queryClient.invalidateQueries({ queryKey: ["watchlists"] });
       toast.success(`"${data.data.name}" listesi oluşturuldu`);
       setNewListName("");
-      
+
       // Automatically add the stock to the newly created list
       if (data?.data?.id) {
         addStockMutation.mutate({ listId: data.data.id, symbol });
