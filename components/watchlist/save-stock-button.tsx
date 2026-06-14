@@ -38,7 +38,9 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
 
   // Determine if stock is saved in any watchlist
   const isSaved = watchlists.some((w) =>
-    (w.stocks || []).some((s) => s.symbol.toUpperCase() === symbol.toUpperCase())
+    (w.stocks || []).some(
+      (s) => s.symbol.toUpperCase() === symbol.toUpperCase(),
+    ),
   );
 
   // Mutation to create a new watchlist
@@ -64,7 +66,13 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
 
   // Mutation to add stock to watchlist (with optimistic updates)
   const addStockMutation = useMutation({
-    mutationFn: async ({ listId, symbol }: { listId: string; symbol: string }) => {
+    mutationFn: async ({
+      listId,
+      symbol,
+    }: {
+      listId: string;
+      symbol: string;
+    }) => {
       const res = await fetch(`/api/watchlists/${listId}/stocks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,14 +94,18 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
         const updatedData = old.data.map((w: any) => {
           if (w.id === listId) {
             const exists = (w.stocks || []).some(
-              (s: any) => s.symbol.toUpperCase() === symbol.toUpperCase()
+              (s: any) => s.symbol.toUpperCase() === symbol.toUpperCase(),
             );
             if (!exists) {
               return {
                 ...w,
                 stocks: [
                   ...(w.stocks || []),
-                  { id: `temp-${Date.now()}`, symbol: symbol.toUpperCase(), name: symbol.toUpperCase() }
+                  {
+                    id: `temp-${Date.now()}`,
+                    symbol: symbol.toUpperCase(),
+                    name: symbol.toUpperCase(),
+                  },
                 ],
               };
             }
@@ -123,7 +135,13 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
 
   // Mutation to remove stock from watchlist (with optimistic updates)
   const removeStockMutation = useMutation({
-    mutationFn: async ({ listId, symbol }: { listId: string; symbol: string }) => {
+    mutationFn: async ({
+      listId,
+      symbol,
+    }: {
+      listId: string;
+      symbol: string;
+    }) => {
       const res = await fetch(`/api/watchlists/${listId}/stocks/${symbol}`, {
         method: "DELETE",
       });
@@ -145,7 +163,7 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
             return {
               ...w,
               stocks: (w.stocks || []).filter(
-                (s: any) => s.symbol.toUpperCase() !== symbol.toUpperCase()
+                (s: any) => s.symbol.toUpperCase() !== symbol.toUpperCase(),
               ),
             };
           }
@@ -184,7 +202,10 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
 
       // Check vertical space below
       let top = rect.bottom + 8;
-      if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
+      if (
+        top + dropdownHeight > window.innerHeight &&
+        rect.top > dropdownHeight
+      ) {
         top = rect.top - dropdownHeight - 8;
       }
 
@@ -237,12 +258,17 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
     <div className="relative inline-block text-left">
       <button
         ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen) {
+            updateCoords();
+          }
+          setIsOpen(!isOpen);
+        }}
         className={cn(
           "p-1.5 rounded-full transition-all duration-200 border",
           isSaved
             ? "bg-zinc-100 border-zinc-100 text-zinc-950 hover:bg-zinc-200"
-            : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+            : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800",
         )}
         title="Listeye Kaydet"
       >
@@ -257,12 +283,18 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
               position: "fixed",
               top: `${coords.top}px`,
               left: `${coords.left}px`,
+              visibility:
+                coords.top === 0 && coords.left === 0 ? "hidden" : "visible",
             }}
             className="w-64 rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 shadow-2xl backdrop-blur-md z-9999 animate-in fade-in slide-in-from-top-2 duration-150"
           >
             <div className="mb-2 pb-1.5 border-b border-zinc-800/60 flex items-center justify-between">
-              <span className="text-xs font-bold text-zinc-300">Listelerim</span>
-              {isLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              <span className="text-xs font-bold text-zinc-300">
+                Listelerim
+              </span>
+              {isLoading && (
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+              )}
             </div>
 
             {/* List options */}
@@ -274,7 +306,7 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
               ) : (
                 watchlists.map((list) => {
                   const hasStock = (list.stocks || []).some(
-                    (s) => s.symbol.toUpperCase() === symbol.toUpperCase()
+                    (s) => s.symbol.toUpperCase() === symbol.toUpperCase(),
                   );
 
                   return (
@@ -289,7 +321,7 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
                           "h-4 w-4 rounded border flex items-center justify-center transition-all",
                           hasStock
                             ? "bg-zinc-100 border-zinc-100 text-zinc-950"
-                            : "border-zinc-700 bg-transparent text-transparent"
+                            : "border-zinc-700 bg-transparent text-transparent",
                         )}
                       >
                         <Check className="h-2.5 w-2.5 stroke-[3]" />
@@ -301,7 +333,10 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
             </div>
 
             {/* Create new list inline */}
-            <form onSubmit={handleCreateList} className="flex gap-2 pt-2 border-t border-zinc-800/60">
+            <form
+              onSubmit={handleCreateList}
+              className="flex gap-2 pt-2 border-t border-zinc-800/60"
+            >
               <Input
                 value={newListName}
                 onChange={(e) => setNewListName(e.target.value)}
@@ -318,7 +353,7 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
               </Button>
             </form>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );
