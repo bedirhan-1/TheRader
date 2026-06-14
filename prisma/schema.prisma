@@ -26,16 +26,28 @@ model User {
 
   strategies        Strategy[]
   orders            Order[]
+  watchlists        Watchlist[]
 }
 
 model Stock {
-  id         String     @id @default(cuid())
-  symbol     String     @unique
+  id         String      @id @default(cuid())
+  symbol     String      @unique
   name       String?
-  active     Boolean    @default(true)
+  active     Boolean     @default(true)
   strategies Strategy[]
   orders     Order[]
-  createdAt  DateTime   @default(now())
+  watchlists Watchlist[]
+  createdAt  DateTime    @default(now())
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stocks    Stock[]
+  createdAt DateTime @default(now())
 }
 
 model Strategy {

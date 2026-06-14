@@ -1,0 +1,176 @@
+{
+  "indices": [
+    {
+      "symbol": "SPY",
+      "name": "S&P 500",
+      "price": 741.67,
+      "change": 0.5422478886222837
+    },
+    {
+      "symbol": "QQQ",
+      "name": "NASDAQ",
+      "price": 722.1,
+      "change": 0.7632948662489747
+    },
+    {
+      "symbol": "DIA",
+      "name": "DOW",
+      "price": 513.2,
+      "change": 0.7637784453476356
+    },
+    {
+      "symbol": "IWM",
+      "name": "Russell 2000",
+      "price": 293.4,
+      "change": 1.0226216299968909
+    }
+  ],
+  "popular": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "price": 291.085,
+      "change": -1.4874103154189922,
+      "volume": 1456808
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "price": 390.42,
+      "change": 0.04228004766114988,
+      "volume": 1076764
+    },
+    {
+      "symbol": "GOOGL",
+      "name": "Alphabet Inc.",
+      "price": 359.65,
+      "change": 0.497387319417658,
+      "volume": 887508
+    },
+    {
+      "symbol": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "price": 238.56,
+      "change": -1.1846574434595252,
+      "volume": 2122615
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla, Inc.",
+      "price": 405.54,
+      "change": 1.5907212104511692,
+      "volume": 1669312
+    }
+  ],
+  "gainers": [
+    {
+      "symbol": "INTC",
+      "name": "Intel Corporation",
+      "price": 124.55,
+      "change": 6.48029409250235,
+      "volume": 5901388
+    },
+    {
+      "symbol": "AMD",
+      "name": "Advanced Micro Devices",
+      "price": 511.74,
+      "change": 4.776724473290879,
+      "volume": 727914
+    },
+    {
+      "symbol": "QCOM",
+      "name": "QUALCOMM Incorporated",
+      "price": 211.54,
+      "change": 4.21716425263573,
+      "volume": 509442
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla, Inc.",
+      "price": 405.54,
+      "change": 1.5907212104511692,
+      "volume": 1669312
+    },
+    {
+      "symbol": "SBUX",
+      "name": "Starbucks Corporation",
+      "price": 103.055,
+      "change": 0.7971439749608881,
+      "volume": 247146
+    }
+  ],
+  "losers": [
+    {
+      "symbol": "NKE",
+      "name": "NIKE, Inc.",
+      "price": 44.89,
+      "change": -2.3068552774755218,
+      "volume": 1108963
+    },
+    {
+      "symbol": "ASML",
+      "name": "ASML Holding N.V.",
+      "price": 1862.985,
+      "change": -1.883866006936135,
+      "volume": 114046
+    },
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "price": 291.085,
+      "change": -1.4874103154189922,
+      "volume": 1456808
+    },
+    {
+      "symbol": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "price": 238.56,
+      "change": -1.1846574434595252,
+      "volume": 2122615
+    },
+    {
+      "symbol": "NFLX",
+      "name": "Netflix, Inc.",
+      "price": 80.33,
+      "change": -1.1323076923076945,
+      "volume": 2550343
+    }
+  ],
+  "volume": [
+    {
+      "symbol": "INTC",
+      "name": "Intel Corporation",
+      "price": 124.55,
+      "change": 6.48029409250235,
+      "volume": 5901388
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "price": 205.1,
+      "change": 0.11715317777993785,
+      "volume": 3923011
+    },
+    {
+      "symbol": "NFLX",
+      "name": "Netflix, Inc.",
+      "price": 80.33,
+      "change": -1.1323076923076945,
+      "volume": 2550343
+    },
+    {
+      "symbol": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "price": 238.56,
+      "change": -1.1846574434595252,
+      "volume": 2122615
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla, Inc.",
+      "price": 405.54,
+      "change": 1.5907212104511692,
+      "volume": 1669312
+    }
+  ]
+}
