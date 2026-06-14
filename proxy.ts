@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicPaths = ["/login", "/api/auth"];
+const publicPaths = ["/login", "/api/auth", "/api/health-check", "/maintenance"];
 const cronPaths = ["/api/cron"];
 
 export async function proxy(request: NextRequest) {
