@@ -23,6 +23,20 @@ function LoginForm() {
     setLoading(true);
 
     try {
+      // Verify backend health before attempting sign in
+      const healthRes = await fetch("/api/health-check", { cache: "no-store" });
+      if (!healthRes.ok) {
+        setError("Sunucuya erişilemiyor, sistem şu anda bakımdadır.");
+        setTimeout(() => router.replace("/maintenance"), 1500);
+        return;
+      }
+    } catch {
+      setError("Sunucuya erişilemiyor, sistem şu anda bakımdadır.");
+      setTimeout(() => router.replace("/maintenance"), 1500);
+      return;
+    }
+
+    try {
       const result = await signIn("credentials", {
         email,
         password,
@@ -125,7 +139,7 @@ export default function LoginPage() {
       {/* Left side: Brand Panel (Visible on all screens, stacks on mobile) */}
       <div className="relative flex w-full md:w-1/2 items-center justify-center bg-linear-to-b from-zinc-900 via-zinc-950 to-black border-b border-border md:border-b-0 md:border-r py-16 md:py-0 overflow-hidden">
         {/* Decorative Grid and Ambient Lights */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#2a2a35_1px,transparent_1px),linear-gradient(to_bottom,#2a2a35_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_85%,transparent_100%)] opacity-70" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#2a2a35_1px,transparent_1px),linear-gradient(to_bottom,#2a2a35_1px,transparent_1px)] bg-size-[3rem_3rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_50%,#000_85%,transparent_100%)] opacity-70" />
         <div className="absolute top-1/4 left-1/3 h-[350px] w-[350px] rounded-full bg-emerald-500/5 blur-[120px] animate-pulse duration-8000" />
         <div className="absolute bottom-1/4 right-1/3 h-[350px] w-[350px] rounded-full bg-blue-500/5 blur-[120px] animate-pulse duration-10000" />
 
