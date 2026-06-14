@@ -193,7 +193,15 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const dropdownWidth = 256;
-      const dropdownHeight = 280; // Estimated max height of the popover
+      
+      let dropdownHeight = 280;
+      if (popoverRef.current) {
+        dropdownHeight = popoverRef.current.offsetHeight;
+      } else {
+        const listCount = watchlists.length;
+        const estimatedListHeight = listCount === 0 ? 40 : Math.min(176, listCount * 32);
+        dropdownHeight = 24 + 30 + 50 + estimatedListHeight;
+      }
 
       // Align right side of dropdown with right side of button
       let left = rect.right - dropdownWidth;
