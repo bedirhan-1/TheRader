@@ -77,7 +77,9 @@ export default function OrdersPage() {
     queryFn: () => fetch(`/api/orders?${queryString}`).then((r) => r.json()),
     refetchInterval: (query) => {
       const ordersList = query?.state?.data?.data ?? [];
-      const hasPendingOrders = ordersList.some((o: any) => o.status === "PENDING");
+      const hasPendingOrders = ordersList.some(
+        (o: any) => o.status === "PENDING",
+      );
       return hasPendingOrders ? 2000 : 30000;
     },
   });
@@ -129,7 +131,6 @@ export default function OrdersPage() {
 
   const orders = data?.data ?? [];
   const total = data?.total ?? 0;
-
 
   return (
     <div className="space-y-6">
@@ -358,7 +359,6 @@ export default function OrdersPage() {
           </TableBody>
         </Table>
       </div>
-
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
