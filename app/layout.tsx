@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { HealthGuard } from "@/components/health-guard";
+import { DevIndicator } from "@/components/dev-indicator";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <Providers>
           <HealthGuard>{children}</HealthGuard>
+          <DevIndicator />
         </Providers>
       </body>
     </html>
