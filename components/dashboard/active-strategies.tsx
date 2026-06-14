@@ -86,7 +86,7 @@ export function ActiveStrategies() {
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{strategy.type.replace("_", " ")}</span>
+                      <span>{strategy.type ? strategy.type.replace("_", " ") : ""}</span>
                       {strategy.lastTriggered && (
                         <span>
                           Son:{" "}

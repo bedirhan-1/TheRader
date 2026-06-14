@@ -1,21 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getAlpacaClient } from "@/lib/alpaca";
+import { backendApi, getBackendHeaders } from "@/lib/backend-api";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const alpaca = getAlpacaClient(session.user.id);
-    const positions = await alpaca.getPositions();
-    return NextResponse.json({ data: positions });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const headers = await getBackendHeaders();
+    const response = await backendApi.get("/api/positions", { headers });
+    return NextResponse.json(response.data);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.response?.data?.error || error.message || "Backend error" },
+      { status: error.response?.status || 500 }
+    );
   }
 }

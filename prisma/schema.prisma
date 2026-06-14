@@ -80,6 +80,16 @@ model Settings {
   id                String  @id @default("singleton")
   cronExpression    String  @default("*/5 * * * *")
   tradeOutsideHours Boolean @default(false)
+  scanInterval      Int     @default(300)
+}
+
+model StrategyLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  strategyName String
+  symbol       String
+  signalType   String   // BUY, SELL, HOLD, ERROR, SKIP
+  message      String?
 }
 
 enum Role {

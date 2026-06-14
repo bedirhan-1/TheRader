@@ -1,7 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
-import { prisma } from "./prisma";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -23,42 +21,56 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        try {
+          const res = await fetch("http://localhost:8080/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
 
-        if (!user) {
+          if (!res.ok) {
+            return null;
+          }
+
+          const data = await res.json();
+          if (!data || !data.token) {
+            return null;
+          }
+
+          // Return user details along with JWT token
+          return {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.name,
+            role: data.user.role,
+            token: data.token, // Store JWT token from Spring Boot
+          };
+        } catch (error) {
+          console.error("NextAuth authorize error calling Spring Boot backend:", error);
           return null;
         }
-
-        const isValid = await compare(credentials.password, user.passwordHash);
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as { role: "ADMIN" | "VIEWER" }).role;
-        token.name = user.name;
+        token.id = (user as any).id;
+        token.role = (user as any).role;
+        token.name = (user as any).name;
+        token.accessToken = (user as any).token; // Save Spring Boot JWT token
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string }).id = token.id as string;
-        (session.user as { role: string }).role = token.role as string;
+        (session.user as any).id = token.id as string;
+        (session.user as any).role = token.role as string;
         session.user.name = token.name as string;
+        (session.user as any).accessToken = token.accessToken as string;
       }
       return session;
     },

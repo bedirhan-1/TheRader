@@ -17,6 +17,8 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
+import { Sparkline } from "@/components/dashboard/sparkline";
+
 export default function WalletPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -108,6 +110,9 @@ export default function WalletPage() {
                   <TableHead className="text-xs text-right">
                     Son Fiyat
                   </TableHead>
+                  <TableHead className="text-xs text-center">
+                    Grafik
+                  </TableHead>
                   <TableHead className="text-xs text-right">
                     Toplam Maliyet
                   </TableHead>
@@ -123,7 +128,7 @@ export default function WalletPage() {
                 {positionsLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i} className="border-border">
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-16" />
                         </TableCell>
@@ -133,7 +138,7 @@ export default function WalletPage() {
                 ) : positions.length === 0 ? (
                   <TableRow className="border-border">
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="h-32 text-center text-sm text-muted-foreground"
                     >
                       Cüzdanınızda açık pozisyon bulunmuyor.
@@ -161,58 +166,63 @@ export default function WalletPage() {
                             <div className="relative flex h-7 w-7 shrink-0 select-none items-center justify-center rounded-full bg-zinc-800 border border-white/5 font-mono text-[10px] font-bold text-zinc-300">
                               <img
                                 src={`https://images.financialmodelingprep.com/symbol/${pos.symbol}.png`}
-                                alt={pos.symbol}
-                                className="absolute inset-0 h-full w-full rounded-full object-contain bg-zinc-900 transition-opacity duration-300"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.opacity = "0";
-                                }}
-                              />
-                              {pos.symbol[0]}
+                                  alt={pos.symbol}
+                                  className="absolute inset-0 h-full w-full rounded-full object-contain bg-zinc-900 transition-opacity duration-300"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.opacity = "0";
+                                  }}
+                                />
+                                {pos.symbol[0]}
+                              </div>
+                              <span className="font-mono text-sm font-semibold text-foreground">
+                                {pos.symbol}
+                              </span>
                             </div>
-                            <span className="font-mono text-sm font-semibold text-foreground">
-                              {pos.symbol}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">
+                            <span className="px-2 py-0.5 rounded bg-zinc-900/60 border border-border text-[10px]">
+                              {pos.exchange}
                             </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground font-mono">
-                          <span className="px-2 py-0.5 rounded bg-zinc-900/60 border border-border text-[10px]">
-                            {pos.exchange}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
-                          {qty}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                          ${avgEntry.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
-                          ${currentPrice.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                          ${costBasis.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
-                          ${marketValue.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={cn(
-                              "font-mono text-xs font-semibold px-2 py-0.5 rounded-md",
-                              unrealizedPL >= 0
-                                ? "text-success bg-success/10 border border-success/15"
-                                : "text-danger bg-danger/10 border border-danger/15",
-                            )}
-                          >
-                            {unrealizedPL >= 0 ? "+" : ""}
-                            {unrealizedPL.toFixed(2)} (
-                            {unrealizedPLPC.toFixed(2)}
-                            %)
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {qty}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                            ${avgEntry.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            ${currentPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex justify-center">
+                              <Sparkline symbol={pos.symbol} baseline={avgEntry || currentPrice || 0} />
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                            ${costBasis.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            ${marketValue.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span
+                              className={cn(
+                                "font-mono text-xs font-semibold px-2 py-0.5 rounded-md",
+                                unrealizedPL >= 0
+                                  ? "text-success bg-success/10 border border-success/15"
+                                  : "text-danger bg-danger/10 border border-danger/15",
+                              )}
+                            >
+                              {unrealizedPL >= 0 ? "+" : ""}
+                              {unrealizedPL.toFixed(2)} (
+                              {unrealizedPLPC.toFixed(2)}
+                              %)
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
               </TableBody>
             </Table>
           </div>

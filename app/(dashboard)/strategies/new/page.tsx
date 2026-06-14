@@ -459,9 +459,7 @@ function NewStrategyForm() {
     if (selectedStock) {
       setFormData((prev) => ({
         ...prev,
-        name:
-          prev.name ||
-          `${selectedStock.symbol} - ${prev.type.replace("_", " ")}`,
+        name: `${selectedStock.symbol} - ${prev.type.replace("_", " ")}`,
       }));
     }
     setStep(3);
@@ -508,7 +506,11 @@ function NewStrategyForm() {
                     : "bg-transparent border-zinc-800 text-zinc-600",
               )}
             >
-              {step > 1 ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" /> : "1"}
+              {step > 1 ? (
+                <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" />
+              ) : (
+                "1"
+              )}
             </div>
             <span
               className={cn(
@@ -521,9 +523,9 @@ function NewStrategyForm() {
               Hisse
             </span>
           </div>
- 
+
           <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/30" />
- 
+
           {/* Step 2 */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <div
@@ -536,7 +538,11 @@ function NewStrategyForm() {
                     : "bg-transparent border-zinc-800 text-zinc-600",
               )}
             >
-              {step > 2 ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" /> : "2"}
+              {step > 2 ? (
+                <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" />
+              ) : (
+                "2"
+              )}
             </div>
             <span
               className={cn(
@@ -549,9 +555,9 @@ function NewStrategyForm() {
               Algoritma
             </span>
           </div>
- 
+
           <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/30" />
- 
+
           {/* Step 3 */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <div

@@ -59,6 +59,7 @@ export default function SettingsPage() {
   const [cronForm, setCronForm] = useState({
     cronExpression: "*/5 * * * *",
     tradeOutsideHours: false,
+    scanInterval: 300,
   });
 
   const [profileForm, setProfileForm] = useState({
@@ -85,6 +86,7 @@ export default function SettingsPage() {
       setCronForm({
         cronExpression: settings.cronExpression || "*/5 * * * *",
         tradeOutsideHours: settings.tradeOutsideHours ?? false,
+        scanInterval: settings.scanInterval ?? 300,
       });
     }
   }, [settings]);
@@ -674,26 +676,24 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">
-                  Strateji Kontrol Sıklığı
+                <Label htmlFor="scanInterval" className="text-xs text-muted-foreground">
+                  Tarama Aralığı (Saniye)
                 </Label>
-                <Select
-                  value={cronForm.cronExpression}
-                  onValueChange={(v) =>
-                    setCronForm({ ...cronForm, cronExpression: v ?? "*/5 * * * *" })
-                  }
-                >
-                  <SelectTrigger className="w-[200px] border-border bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="*/1 * * * *">Her 1 dakika</SelectItem>
-                    <SelectItem value="*/5 * * * *">Her 5 dakika</SelectItem>
-                    <SelectItem value="*/15 * * * *">Her 15 dakika</SelectItem>
-                    <SelectItem value="*/30 * * * *">Her 30 dakika</SelectItem>
-                    <SelectItem value="0 * * * *">Her saat</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="scanInterval"
+                    type="number"
+                    min={5}
+                    max={3600}
+                    value={cronForm.scanInterval}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setCronForm({ ...cronForm, scanInterval: isNaN(val) ? 5 : Math.max(5, Math.min(3600, val)) });
+                    }}
+                    className="w-[200px] border-border bg-background"
+                  />
+                  <span className="text-xs text-muted-foreground">saniye (Min: 5, Max: 3600)</span>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <Label className="text-sm text-muted-foreground">

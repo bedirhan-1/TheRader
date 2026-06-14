@@ -5,6 +5,7 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { PortfolioChart } from "@/components/dashboard/portfolio-chart";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
 import { ActiveStrategies } from "@/components/dashboard/active-strategies";
+import { StrategyLogs } from "@/components/dashboard/strategy-logs";
 
 export default function DashboardPage() {
   const { data: account, isLoading: accountLoading } = useQuery({
@@ -73,6 +74,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <RecentOrders />
         <ActiveStrategies />
+      </div>
+
+      {/* System Run Logs */}
+      <div className="mt-6">
+        <StrategyLogs />
       </div>
     </div>
   );

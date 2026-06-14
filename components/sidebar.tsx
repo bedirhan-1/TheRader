@@ -66,7 +66,26 @@ const navItems: {
     ),
   },
   {
-    label: "Hisseler",
+    label: "Takip Listem",
+    href: "/watchlist",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+  },
+  {
+    label: "Keşfet",
     href: "/stocks",
     icon: (
       <svg
@@ -79,7 +98,8 @@ const navItems: {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        <circle cx="12" cy="12" r="10" />
+        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
       </svg>
     ),
   },

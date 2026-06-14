@@ -57,6 +57,18 @@ const sideColors: Record<string, string> = {
   SELL: "bg-danger/10 text-danger border-danger/20",
 };
 
+function TradingViewChart({ symbol }: { symbol: string }) {
+  return (
+    <div className="w-full h-[400px] bg-zinc-950 overflow-hidden border border-zinc-900/40 relative">
+      <iframe
+        src={`https://s.tradingview.com/widgetembed/?symbol=${symbol.toUpperCase()}&interval=D&theme=dark&style=1&timezone=exchange&locale=tr`}
+        className="absolute inset-0 w-full h-full border-0"
+        allowFullScreen
+      />
+    </div>
+  );
+}
+
 export default function StockDetailPage({
   params,
 }: {
@@ -234,123 +246,13 @@ export default function StockDetailPage({
         <div className="lg:col-span-2 space-y-6">
           {/* Chart */}
           <Card className="border-border bg-card">
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-2">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Fiyat Grafiği
+                Canlı Fiyat Grafiği (TradingView)
               </CardTitle>
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                <div className="flex gap-1 bg-zinc-900/60 p-0.5 rounded-md border border-border">
-                  {timeframes.map((t) => (
-                    <Button
-                      key={t.value}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedTf(t.value)}
-                      className={cn(
-                        "h-7 px-2 text-xs",
-                        selectedTf === t.value
-                          ? "bg-accent text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {t.label}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedTf("custom")}
-                    className={cn(
-                      "h-7 px-2 text-xs",
-                      selectedTf === "custom"
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    Özel
-                  </Button>
-                </div>
-                {selectedTf === "custom" && (
-                  <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={customDays}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value) || 1;
-                        setCustomDays(val);
-                      }}
-                      className="h-7 w-16 text-center text-xs font-mono bg-zinc-900/60 border-border focus-visible:ring-offset-0 focus-visible:ring-1 focus-visible:ring-info"
-                    />
-                    <span className="text-xs text-muted-foreground">Gün</span>
-                  </div>
-                )}
-              </div>
             </CardHeader>
             <CardContent>
-              {barsLoading ? (
-                <Skeleton className="h-[300px] w-full" />
-              ) : chartData.length === 0 ? (
-                <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-                  Veri bulunamadı.
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={chartData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      yAxisId="price"
-                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v: number) => `$${v.toFixed(0)}`}
-                      width={55}
-                    />
-                    <YAxis
-                      yAxisId="volume"
-                      orientation="right"
-                      tick={false}
-                      axisLine={false}
-                      tickLine={false}
-                      width={0}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        color: "var(--foreground)",
-                      }}
-                    />
-                    <Bar
-                      yAxisId="volume"
-                      dataKey="volume"
-                      fill="var(--muted-foreground)"
-                      opacity={0.25}
-                    />
-                    <Line
-                      yAxisId="price"
-                      type="monotone"
-                      dataKey="close"
-                      stroke="var(--info)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              )}
+              <TradingViewChart symbol={symbol} />
             </CardContent>
           </Card>
 
@@ -371,43 +273,45 @@ export default function StockDetailPage({
                 ) : (
                   <div className="w-full overflow-x-auto">
                     <Table className="whitespace-nowrap">
-                    <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-xs">Ad</TableHead>
-                        <TableHead className="text-xs">Tür</TableHead>
-                        <TableHead className="text-xs">Durum</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {strategies.map(
-                        (s: {
-                          id: string;
-                          name: string;
-                          type: string;
-                          enabled: boolean;
-                        }) => (
-                          <TableRow key={s.id} className="border-border">
-                            <TableCell className="text-sm">{s.name}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {s.type.replace("_", " ")}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  s.enabled
-                                    ? "border-success/20 bg-success/10 text-success"
-                                    : "border-border bg-muted text-muted-foreground"
-                                }
-                              >
-                                {s.enabled ? "Aktif" : "Pasif"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ),
-                      )}
-                    </TableBody>
-                  </Table>
+                      <TableHeader>
+                        <TableRow className="border-border hover:bg-transparent">
+                          <TableHead className="text-xs">Ad</TableHead>
+                          <TableHead className="text-xs">Tür</TableHead>
+                          <TableHead className="text-xs">Durum</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {strategies.map(
+                          (s: {
+                            id: string;
+                            name: string;
+                            type: string;
+                            enabled: boolean;
+                          }) => (
+                            <TableRow key={s.id} className="border-border">
+                              <TableCell className="text-sm">
+                                {s.name}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {s.type.replace("_", " ")}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    s.enabled
+                                      ? "border-success/20 bg-success/10 text-success"
+                                      : "border-border bg-muted text-muted-foreground"
+                                  }
+                                >
+                                  {s.enabled ? "Aktif" : "Pasif"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ),
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
@@ -428,53 +332,53 @@ export default function StockDetailPage({
                 ) : (
                   <div className="w-full overflow-x-auto">
                     <Table className="whitespace-nowrap">
-                    <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-xs">Yön</TableHead>
-                        <TableHead className="text-xs">Adet</TableHead>
-                        <TableHead className="text-xs">Durum</TableHead>
-                        <TableHead className="text-xs">Tarih</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orders.map(
-                        (o: {
-                          id: string;
-                          side: string;
-                          qty: number;
-                          status: string;
-                          createdAt: string;
-                        }) => (
-                          <TableRow key={o.id} className="border-border">
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={sideColors[o.side]}
-                              >
-                                {o.side}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-mono text-xs">
-                              {o.qty}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={statusColors[o.status]}
-                              >
-                                {o.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {new Date(o.createdAt).toLocaleDateString(
-                                "tr-TR",
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ),
-                      )}
-                    </TableBody>
-                  </Table>
+                      <TableHeader>
+                        <TableRow className="border-border hover:bg-transparent">
+                          <TableHead className="text-xs">Yön</TableHead>
+                          <TableHead className="text-xs">Adet</TableHead>
+                          <TableHead className="text-xs">Durum</TableHead>
+                          <TableHead className="text-xs">Tarih</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map(
+                          (o: {
+                            id: string;
+                            side: string;
+                            qty: number;
+                            status: string;
+                            createdAt: string;
+                          }) => (
+                            <TableRow key={o.id} className="border-border">
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className={sideColors[o.side]}
+                                >
+                                  {o.side}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {o.qty}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className={statusColors[o.status]}
+                                >
+                                  {o.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {new Date(o.createdAt).toLocaleDateString(
+                                  "tr-TR",
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ),
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </CardContent>
@@ -486,7 +390,7 @@ export default function StockDetailPage({
         <div className="lg:col-span-1">
           <Card className="border-border bg-card shadow-lg sticky top-6">
             <CardHeader className="p-4 pb-2 border-b border-border/40">
-              <div className="flex w-full bg-zinc-950 p-1 rounded-lg border border-border/60">
+              <div className="flex w-full bg-zinc-100 dark:bg-zinc-950 p-1 rounded-lg border border-border/60">
                 <button
                   type="button"
                   onClick={() => setTradeSide("BUY")}
@@ -573,7 +477,7 @@ export default function StockDetailPage({
               </div>
 
               {/* Pricing Info Summary */}
-              <div className="bg-zinc-950/40 p-3 rounded-lg border border-border/50 space-y-2 text-xs">
+              <div className="bg-zinc-100/60 dark:bg-zinc-950/40 p-3 rounded-lg border border-border/50 space-y-2 text-xs">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span>Anlık Hisse Fiyatı:</span>
                   <span className="font-mono text-foreground font-semibold">
