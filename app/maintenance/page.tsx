@@ -9,7 +9,7 @@ export default function MaintenancePage() {
 
   const checkHealth = async () => {
     try {
-      const res = await fetch("/api/health-check");
+      const res = await fetch("/api/health-check", { cache: "no-store" });
       if (res.ok) {
         window.location.href = "/";
         return true;

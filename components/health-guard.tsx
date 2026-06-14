@@ -16,7 +16,7 @@ export function HealthGuard({ children }: { children: React.ReactNode }) {
 
     const checkHealth = async () => {
       try {
-        const res = await fetch("/api/health-check");
+        const res = await fetch("/api/health-check", { cache: "no-store" });
         if (!res.ok) {
           router.replace("/maintenance");
         } else {
