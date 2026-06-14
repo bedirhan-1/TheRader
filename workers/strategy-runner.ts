@@ -83,6 +83,19 @@ export async function runStrategies() {
       try {
         const alpaca = getAlpacaClient(userId);
 
+        // Check if we already have a pending order in our database to prevent duplicate entry/calculations
+        const pendingOrder = await prisma.order.findFirst({
+          where: {
+            userId,
+            stockId: stock.id,
+            status: "PENDING",
+          },
+        });
+        if (pendingOrder) {
+          console.log(`[Strategy Runner] Already have a pending order for ${stock.symbol}. Skipping.`);
+          continue;
+        }
+
         // Fetch bars from Alpaca
         // We'll fetch 100 days of daily data to ensure technical indicator calculation works (needs buffer)
         const end = new Date();
@@ -115,18 +128,7 @@ export async function runStrategies() {
             continue;
           }
 
-          // Check if we already have a pending order in our database to prevent duplicate entry
-          const pendingOrder = await prisma.order.findFirst({
-            where: {
-              userId,
-              stockId: stock.id,
-              status: "PENDING",
-            },
-          });
-          if (pendingOrder) {
-            console.log(`[Strategy Runner] Already have a pending order for ${stock.symbol}. Skipping.`);
-            continue;
-          }
+
 
           // Check if we already have an open position to prevent duplicate entry/over-leverage
           const positions = await alpaca.getPositions();
