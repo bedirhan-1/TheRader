@@ -115,7 +115,20 @@ export async function runStrategies() {
             continue;
           }
 
-          // Check if we already have an open position or pending orders to prevent duplicate entry/over-leverage
+          // Check if we already have a pending order in our database to prevent duplicate entry
+          const pendingOrder = await prisma.order.findFirst({
+            where: {
+              userId,
+              stockId: stock.id,
+              status: "PENDING",
+            },
+          });
+          if (pendingOrder) {
+            console.log(`[Strategy Runner] Already have a pending order for ${stock.symbol}. Skipping.`);
+            continue;
+          }
+
+          // Check if we already have an open position to prevent duplicate entry/over-leverage
           const positions = await alpaca.getPositions();
           const hasPosition = positions.some((p) => p.symbol === stock.symbol);
           
@@ -152,11 +165,16 @@ export async function runStrategies() {
             },
           });
 
-          // Update strategy's last triggered timestamp
+          // Toggle strategy action and update last triggered timestamp
+          const nextAction = action === "BUY" ? "SELL" : "BUY";
           await prisma.strategy.update({
             where: { id },
-            data: { lastTriggered: new Date() },
+            data: { 
+              action: nextAction,
+              lastTriggered: new Date() 
+            },
           });
+
 
           console.log(`[Strategy Runner] Successfully executed and recorded order for ${name}`);
         }

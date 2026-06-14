@@ -109,8 +109,27 @@ export default function OrdersPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Emir iptal edildi");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const orders = data?.data ?? [];
   const total = data?.total ?? 0;
+
 
   return (
     <div className="space-y-6">
@@ -261,13 +280,14 @@ export default function OrdersPage() {
               <TableHead className="text-xs">Durum</TableHead>
               <TableHead className="text-xs">Fiyat</TableHead>
               <TableHead className="text-xs">Tarih</TableHead>
+              <TableHead className="text-xs text-right">İşlem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading
               ? Array.from({ length: 10 }).map((_, i) => (
                   <TableRow key={i} className="border-border">
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-16" />
                       </TableCell>
@@ -319,12 +339,26 @@ export default function OrdersPage() {
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(order.createdAt).toLocaleString("tr-TR")}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {order.status === "PENDING" && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => cancelMutation.mutate(order.id)}
+                            disabled={cancelMutation.isPending}
+                            className="h-7 px-3 text-xs bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg border-0 transition-colors duration-150 active:scale-95"
+                          >
+                            İptal Et
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ),
                 )}
           </TableBody>
         </Table>
       </div>
+
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
