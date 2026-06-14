@@ -22,7 +22,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const res = await fetch("http://localhost:8080/api/auth/login", {
+          const backendUrl = process.env.SPRING_API_URL || "http://localhost:8080";
+          const res = await fetch(`${backendUrl}/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
