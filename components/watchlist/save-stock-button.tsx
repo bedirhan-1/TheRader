@@ -58,6 +58,11 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
       queryClient.invalidateQueries({ queryKey: ["watchlists"] });
       toast.success(`"${data.data.name}" listesi oluşturuldu`);
       setNewListName("");
+      
+      // Automatically add the stock to the newly created list
+      if (data?.data?.id) {
+        addStockMutation.mutate({ listId: data.data.id, symbol });
+      }
     },
     onError: () => {
       toast.error("Liste oluşturulurken bir hata oluştu");
@@ -193,13 +198,14 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const dropdownWidth = 256;
-      
+
       let dropdownHeight = 280;
       if (popoverRef.current) {
         dropdownHeight = popoverRef.current.offsetHeight;
       } else {
         const listCount = watchlists.length;
-        const estimatedListHeight = listCount === 0 ? 40 : Math.min(176, listCount * 32);
+        const estimatedListHeight =
+          listCount === 0 ? 40 : Math.min(176, listCount * 32);
         dropdownHeight = 24 + 30 + 50 + estimatedListHeight;
       }
 
@@ -332,7 +338,7 @@ export function SaveStockButton({ symbol }: { symbol: string }) {
                             : "border-zinc-700 bg-transparent text-transparent",
                         )}
                       >
-                        <Check className="h-2.5 w-2.5 stroke-[3]" />
+                        <Check className="h-2.5 w-2.5 stroke-3" />
                       </div>
                     </button>
                   );
